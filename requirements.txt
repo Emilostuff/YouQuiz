@@ -1,0 +1,1 @@
+pafy @ git+https://github.com/notLonelySoul/pafy1

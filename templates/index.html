@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+
+<head>
+    <meta charset="utf-8">
+    <title>Music Quiz</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+
+<body>
+    <h1>Choose your team</h1>
+    <form action="/red" method="get">
+        <button type="submit" name="buzz" class="buzzer red">RED</button>
+    </form>
+    <form action="/blue" method="get">
+      <button type="submit" name="buzz" class="buzzer blue">BLUE</button>
+  </form>
+</body>
+
+</html>
