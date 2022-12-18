@@ -12,6 +12,8 @@ class Song:
     file: str
     title: str
     start: int
+    note: str
+    used: bool = False
 
     def get_player(self):
         # load VLC instance and media
@@ -50,7 +52,8 @@ class Config:
             # parse info
             title = song_info["title"] if "title" in song_info else video.title
             start = song_info["start"] if "start" in song_info else 0
+            note = song_info["note"] if "note" in song_info else ""
 
-            songs.append(Song(file=path, title=title, start=start))
+            songs.append(Song(path, title, start, note))
 
         return songs
