@@ -1,9 +1,10 @@
 import PySimpleGUI as sg
+import textwrap
 
 
 class Gui:
     def __init__(self, songs):
-        # set color theme
+        # settings
         sg.theme("DarkPurple3")
 
         # define layout
@@ -13,6 +14,7 @@ class Gui:
                 sg.Push(),
                 sg.Button("PLAY", key="-PLAYPAUSE-", enable_events=True),
             ],
+            [sg.ProgressBar(1000, orientation='h', size=(60,10), key='-PROGRESS-')],
             [sg.StatusBar("No song loaded", size=(60, 1), key="-SONG_DISPLAY-")],
             [
                 sg.Multiline(
@@ -66,6 +68,13 @@ class Gui:
         )
         self.window = window
         self.set_song_index(0)
+        sg.cprint_set_output_destination(self.window, "-LOG-")
+
+    def get_event(self):
+        event, values = self.window.read(timeout=10)
+        if event == sg.WIN_CLOSED:
+            event = "Exit"
+        return event
 
     def song_index(self):
         return self.window["-SONGS-"].get_indexes()[0]
@@ -80,6 +89,12 @@ class Gui:
             values=names, set_to_index=index, scroll_to_index=index
         )
 
+    def update_player_info(self, song):
+        self.window["-SONG_DISPLAY-"].update(song.title)
+        self.window['-SONG_INFO-'].update(song.note)
+
     def log(self, msg):
-        sg.cprint_set_output_destination(self.window, "-LOG-")
-        sg.cprint(msg)
+        sg.cprint(textwrap.shorten(msg, width=60))
+
+    def update_progress_bar(self, position):
+        self.window["-PROGRESS-"].update(round(1000 * position))

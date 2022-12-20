@@ -3,8 +3,14 @@ import pafy
 import vlc
 from dataclasses import dataclass
 import os
+from enum import Enum
 
 PATH = "temp"
+
+
+class Team(Enum):
+    RED = 0
+    BLUE = 1
 
 
 @dataclass

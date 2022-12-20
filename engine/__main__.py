@@ -1,91 +1,140 @@
 # from player import get_player
-from server import run_server
+from server import Server
 from content import Config, Song
-from threading import Thread
-import queue
-from enum import Enum, auto
 import PySimpleGUI as sg
+from enum import Enum, auto
 from gui import Gui
-import textwrap
+from content import Team
+import vlc
 
 
 class State(Enum):
     UNLOADED = auto()
     PAUSED = auto()
     PLAYING = auto()
-    INTERRUPTED = auto()
-    
+    BUZZED = auto()
+
+
+class Program:
+    def __init__(self, gui, server, songs):
+        if len(songs) == 0:
+            raise Exception("Can't make program from empty song list")
+        self.gui = gui
+
+        self.songs = songs
+        self.server = server
+
+        # PROGRAM STATE VARIABLES
+        self.state = State.UNLOADED
+        self.loaded_song: Song = None
+        self.player: vlc.MediaPlayer = None
+        self.points = [0] * len(Team)
+        self.timers = [0.0] * len(Team)
+
+    def start_player(self):
+        if self.player is not None and not self.player.is_playing():
+            self.player.play()
+        self.gui.window["-PLAYPAUSE-"].update("PAUSE")
+
+    def pause_player(self):
+        if self.player is not None and self.player.is_playing():
+            self.player.pause()
+        self.gui.window["-PLAYPAUSE-"].update("PLAY")
+
+    def change_state_to(self, state):
+        if state == State.UNLOADED:
+            raise Exception("Can't go back to this state")
+        elif state == State.PAUSED:
+            self.pause_player()
+        elif state == State.PLAYING:
+            self.start_player()
+        elif state == State.BUZZED:
+            self.pause_player()
+        # update state
+        self.state = state
+
+    def load_song(self):
+        index = self.gui.song_index()
+        # log
+        if self.loaded_song != self.songs[index]:
+            self.gui.log(f"SONG: {self.songs[index].title}")
+        # update ui and state
+        self.loaded_song = self.songs[index]
+        self.player = self.loaded_song.get_player()
+        self.songs[index].used = True
+        self.gui.update_player_info(self.loaded_song)
+        self.gui.reload_song_list(self.songs)
+        self.gui.update_progress_bar(self.player.get_position())  # always shows 0.0
+
+    def mark_song(self):
+        index = self.gui.song_index()
+        self.songs[index].used = not self.songs[index].used
+        self.gui.reload_song_list(self.songs)
+
+    def run(self):
+        # Run the Event Loop
+        while True:
+            # read event
+            event = self.gui.get_event()
+            if event == "Exit":
+                self.pause_player()
+                break
+
+            # process event
+            if event == "-MARK-":
+                self.mark_song()
+
+            # buzz
+            if self.server.has_next():
+                self.window.hide()
+                self.change_state_to(State.BUZZED)
+                continue
+
+            # State specific behavior
+            if self.state == State.UNLOADED or self.state == State.PAUSED:
+                if event == "-LOAD-":
+                    self.load_song()
+                    self.change_state_to(State.PAUSED)
+
+            if self.state == State.PAUSED:
+                if event == "-PLAYPAUSE-":
+                    self.change_state_to(State.PLAYING)
+                    self.server.open(Team.RED)
+                    self.server.open(Team.BLUE)
+
+            elif self.state == State.PLAYING:
+                self.gui.update_progress_bar(self.player.get_position())
+                # pause
+                if event == "-PLAYPAUSE-":
+                    self.change_state_to(State.PAUSED)
+                    self.server.close_all()
+
+            elif self.state == State.BUZZED:
+                # get team
+                team = self.server.get()
+                sg.popup_ok(f"{team}")
+
+                # return to pause state
+                if not self.server.has_next():
+                    self.server.reset_buzzers()
+                    self.server.close_all()
+                    self.change_state_to(State.PAUSED)
+                    self.window.un_hide()
+
+        self.gui.window.close()
+
 
 if __name__ == "__main__":
     # load content
     cfg = Config("config.yml")
     songs = cfg.get_songs()
-    if len(songs) == 0:
-        raise Exception("No songs found in config file")
-    
-    # set up server
-    q = queue.Queue()
-    thread = Thread(target=run_server, args=(q,))
-    thread.start()
-    
-    # Setup control panel
+
+    # set up and run server
+    server = Server()
+
+    # setup gui
     gui = Gui(songs)
 
-    # PROGRAM STATE VARIABLES
-    state = State.UNLOADED
-    loaded_song = None
-    player = None
-
-    # Run the Event Loop
-    while True:
-        # read event
-        event, values = gui.window.read(timeout=0)
-        if event == "Exit" or event == sg.WIN_CLOSED:
-            break
-
-        # read from queue
-        buzz = None if q.empty() else q.get()
-        if buzz is not None:
-            print(f"Got: {buzz}")
-
-        # process event
-        if event == "-MARK-":
-            index = gui.song_index()
-            songs[index].used = not songs[index].used
-            gui.reload_song_list(songs)
-
-        # State specific behavior
-        if state == State.UNLOADED or state == State.PAUSED:
-            # load song
-            if event == "-LOAD-":
-                state = state.PAUSED
-                index = gui.song_index()
-                if loaded_song != songs[index]:
-                    title = textwrap.shorten(songs[index].title, width=50, placeholder=' ...')
-                    gui.log(f"SONG: {title}")
-                loaded_song = songs[index]
-                player = loaded_song.get_player()
-                gui.window["-SONG_DISPLAY-"].update(loaded_song.title)
-                gui.window['-SONG_INFO-'].update(loaded_song.note)
-                songs[index].used = True
-                gui.reload_song_list(songs)
-      
-        if state == State.PAUSED:
-            # play
-            if event == "-PLAYPAUSE-":
-                state = state.PLAYING
-                player.play()
-                gui.window["-PLAYPAUSE-"].update("PAUSE")
-
-        elif state == State.PLAYING:
-            # pause
-            if event == "-PLAYPAUSE-":
-                state = state.PAUSED
-                player.pause()
-                gui.window["-PLAYPAUSE-"].update("PLAY")
-
-
-                  
-    gui.window.close()
-
-    thread.join()
+    # Set up and run program
+    program = Program(gui, server, songs)
+    program.run()
