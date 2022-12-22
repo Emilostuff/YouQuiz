@@ -1,6 +1,6 @@
 # from player import get_player
 from server import Server
-from content import Config, Song
+from content import Config, Audio
 import PySimpleGUI as sg
 from enum import Enum, auto
 from gui import Gui
@@ -21,12 +21,12 @@ class Program:
         if len(songs) == 0:
             raise Exception("Can't make program from empty song list")
         self.gui: Gui = gui
-        self.songs: list[Song] = songs
+        self.songs: list[Audio] = songs
         self.server: Server = server
 
         # PROGRAM STATE VARIABLES
         self.state = State.UNLOADED
-        self.loaded_song: Song = None
+        self.loaded_song: Audio = None
         self.player: vlc.MediaPlayer = None
         self.points = [0] * len(Team)
         self.timers = [0.0] * len(Team)
@@ -198,7 +198,7 @@ class Program:
                 else:
                     self.server.close_all()
 
-                if event == "-PLAYPAUSE-":
+                if event == "-PLAYPAUSE-" or not self.player.is_playing():
                     self.change_state_to(State.PAUSED)
                     self.server.close_all()
 
@@ -223,9 +223,10 @@ if __name__ == "__main__":
     # load content
     cfg = Config("config.yml")
     songs = cfg.get_songs()
+    buzzers = cfg.get_buzzers()
 
     # set up and run server
-    server = Server()
+    server = Server(buzzers)
 
     # setup gui
     gui = Gui(songs)

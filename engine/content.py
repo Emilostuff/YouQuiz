@@ -14,11 +14,12 @@ class Team(Enum):
 
 
 @dataclass
-class Song:
+class Audio:
     file: str
     title: str
-    start: int
     note: str
+    start: int
+    stop: int = None
     used: bool = False
 
     def get_player(self):
@@ -30,6 +31,8 @@ class Song:
         # add custom start time
         if self.start != 0:
             media.add_option(f"start-time={self.start}")
+        if self.stop is not None:
+            media.add_option(f"stop-time={self.stop}")
 
         # return player
         player = instance.media_player_new()
@@ -58,8 +61,29 @@ class Config:
             # parse info
             title = song_info["title"] if "title" in song_info else video.title
             start = song_info["start"] if "start" in song_info else 0
+            stop = song_info["stop"] if "stop" in song_info else None
             note = song_info["note"] if "note" in song_info else ""
 
-            songs.append(Song(path, title, start, note))
+            songs.append(Audio(path, title, note, start, stop))
 
         return songs
+
+    def get_buzzers(self):
+        buzzers = []
+        
+        for (i, team_info) in enumerate(self.data["buzzers"]):
+            # get audio stream url
+            video = pafy.new(team_info["url"])
+            best = video.getbestaudio()
+            path = best.download(filepath=PATH)
+
+            # parse info
+            start = team_info["start"] if "start" in team_info else 0
+            stop = team_info["stop"] if "stop" in team_info else None
+
+            if stop - start > 5.0:
+                raise Exception("Buzzer audio must not last more than 5 seconds")
+                
+            buzzers.append(Audio(path, f"{Team(i).name} Buzzer", "", start, stop))
+
+        return buzzers

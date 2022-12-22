@@ -1,3 +1,12 @@
+buzzers:
+  - url: https://www.youtube.com/watch?v=L6aT_oEhIKo&ab_channel=MovieMan
+    start: 0.1
+    stop: 4
+
+  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+    start: 9.2
+    stop: 10.5
+
 songs:
   - url: https://www.youtube.com/watch?v=9qoXa5_w3Gw
     title: "Sauna - Vulfpeck"
@@ -5,7 +14,8 @@ songs:
 
   - url: https://youtu.be/dTnHAITmuYQ?t=51
     start: 52
-  
+
   - url: https://www.youtube.com/watch?v=6gKZj5lLcUk&ab_channel=Vulf
-  
+
   - url: https://www.youtube.com/watch?v=le0BLAEO93g&ab_channel=Vulf
+

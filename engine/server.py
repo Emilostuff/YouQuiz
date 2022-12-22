@@ -3,16 +3,18 @@ import queue
 from threading import Thread
 from content import Team
 import socket
+from content import Audio
 
 
 PORT = 600
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, buzzers: list[Audio]):
         self.queue = queue.Queue()
         self.buzzed = [False] * len(Team)
         self.accepting = [False] * len(Team)
+        self.buzzers = [b.get_player() for b in buzzers]
         thread = Thread(target=self.__run_thread, args=())
         thread.start()
 
@@ -48,6 +50,8 @@ class Server:
             if self.accepting[i] and not self.buzzed[i] and request.method == "POST":
                 self.queue.put(Team.RED)
                 self.buzzed[i] = True
+                self.buzzers[i].stop()
+                self.buzzers[i].play()
 
             return render_template("red.html")
 
@@ -57,6 +61,8 @@ class Server:
             if self.accepting[i] and not self.buzzed[i] and request.method == "POST":
                 self.queue.put(Team.BLUE)
                 self.buzzed[i] = True
+                self.buzzers[i].stop()
+                self.buzzers[i].play()
 
             return render_template("blue.html")
 
