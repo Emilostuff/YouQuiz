@@ -1,43 +1,46 @@
 import PySimpleGUI as sg
 import textwrap
 
-
-STEPS = 500
 COL_WIDTH = 60
+TITLE_FONT = ("Arial bold", 26)
 
 
 class Gui:
     def __init__(self, songs):
         # settings
-        sg.theme("DarkPurple3")
+        sg.theme("DarkRed")
 
         # define layout
         col1 = [
             [
-                sg.Text("CURRENT SONG", font=("Arial", 26)),
+                sg.Text("PLAYER", font=TITLE_FONT),
                 sg.Push(),
+                sg.Checkbox(
+                    "Enable Buzzers", key="-ENABLE-", enable_events=True, default=True
+                ),
                 sg.Button("PLAY", key="-PLAYPAUSE-", enable_events=True),
             ],
             [
                 sg.ProgressBar(
-                    STEPS, orientation="h", size=(COL_WIDTH, 10), key="-PROGRESS-"
+                    1.0, orientation="h", size=(COL_WIDTH, 10), key="-PROGRESS-"
                 )
             ],
             [sg.StatusBar("No song loaded", size=(COL_WIDTH, 1), key="-SONG_DISPLAY-")],
             [
                 sg.Multiline(
-                    size=(COL_WIDTH, 5),
+                    size=(COL_WIDTH, 7),
                     key="-SONG_INFO-",
                     disabled=True,
                     no_scrollbar=True,
                 )
             ],
-            [sg.Text("", font=("Arial", 26))],
+            [sg.T()],
+            [sg.VPush()],
             [
-                sg.Text("LIBRARY", font=("Arial", 26)),
+                sg.Text("LIBRARY", font=TITLE_FONT),
                 sg.Push(),
                 sg.Button(" ✓ ", key="-MARK-", enable_events=True),
-                sg.Button("Load into Player", key="-LOAD-", enable_events=True),
+                sg.Button("LOAD", key="-LOAD-", enable_events=True),
             ],
             [
                 sg.Listbox(
@@ -51,11 +54,77 @@ class Gui:
         ]
 
         col2 = [
+            [sg.Text("TEAMS", font=TITLE_FONT)],
+            [
+                sg.Frame(
+                    "RED",
+                    [
+                        [
+                            sg.Text("Points:", pad=(15, 15)),
+                            sg.StatusBar(
+                                "0",
+                                size=(1, 1),
+                                key="-RED_POINTS-",
+                                font=("Arial", 26),
+                            ),
+                            sg.T(s=2),
+                            sg.Text("Time Penalty:", pad=(15, 15)),
+                            sg.StatusBar(
+                                "-",
+                                size=(2, 1),
+                                key="-RED_PENALTIES-",
+                                font=("Arial", 26),
+                            ),
+                            sg.Push(),
+                            sg.Button(
+                                "UPDATE",
+                                key="-EDIT_RED-",
+                                enable_events=True,
+                                pad=(15, 15),
+                            ),
+                        ]
+                    ],
+                    expand_x=True,
+                )
+            ],
+            [
+                sg.Frame(
+                    "BLUE",
+                    [
+                        [
+                            sg.Text("Points:", pad=(15, 15)),
+                            sg.StatusBar(
+                                "0",
+                                size=(1, 1),
+                                key="-BLUE_POINTS-",
+                                font=("Arial", 26),
+                            ),
+                            sg.T(s=2),
+                            sg.Text("Time Penalty:", pad=(15, 15)),
+                            sg.StatusBar(
+                                "-",
+                                size=(2, 1),
+                                key="-BLUE_PENALTIES-",
+                                font=("Arial", 26),
+                            ),
+                            sg.Push(),
+                            sg.Button(
+                                "UPDATE",
+                                key="-EDIT_BLUE-",
+                                enable_events=True,
+                                pad=(15, 15),
+                            ),
+                        ]
+                    ],
+                    expand_x=True,
+                )
+            ],
+            [sg.T()],
             [sg.VPush()],
-            [sg.Text("LOG", font=("Arial", 26))],
+            [sg.Text("EVENT LOG", font=TITLE_FONT)],
             [
                 sg.Multiline(
-                    size=(COL_WIDTH, 10),
+                    size=(COL_WIDTH, 21),
                     key="-LOG-",
                     disabled=True,
                     no_scrollbar=True,
@@ -65,8 +134,8 @@ class Gui:
 
         layout = [
             [
-                sg.Column(col1),
-                sg.VSeperator(),
+                sg.Column(col1, expand_y=True),
+                sg.T(),
                 sg.Column(col2, expand_y=True),
             ]
         ]
@@ -101,27 +170,90 @@ class Gui:
         self.window["-SONG_DISPLAY-"].update(song.title)
         self.window["-SONG_INFO-"].update(song.note)
 
-    def log(self, msg):
-        sg.cprint(textwrap.shorten(msg, width=60))
+    def log(self, msg, new=False, indent=False):
+        if new:
+            sg.cprint("")
+        msg = textwrap.shorten(msg, width=COL_WIDTH)
+        if indent:
+            msg = "   •   " + msg
+        sg.cprint(msg)
 
     def update_progress_bar(self, position):
-        self.window["-PROGRESS-"].update(round(STEPS * position))
+        self.window["-PROGRESS-"].update(position)
 
     # popup related
-    def open_popup(self, team):
+    def open_popup(self, msg):
         # define layout
         layout = [
-            [sg.Text(f"BUZZ FROM {team.name} TEAM", font=("Arial", 26), size=(30,3)), sg.Push()],
             [
-                sg.Button("Give Time Penalty", key="-PENALTY-", enable_events=True),
                 sg.Push(),
-                sg.Spin(values=[0.5, 1.0, 1.5, 2.0, 2.5, 3.0], initial_value=1.0, size=(6, 2), key="-POINTS-"),
-                sg.Button("Award Points", key="-GIVE-", enable_events=True),
+                sg.Text(msg.upper(), font=TITLE_FONT),
+                sg.Push(),
             ],
-            
+            [
+                sg.Frame(
+                    "PENALTY",
+                    [
+                        [
+                            sg.Button(
+                                "+5 seconds",
+                                key="-PENALTY-",
+                                enable_events=True,
+                                pad=((10, 0), 10),
+                            ),
+                            sg.Button(
+                                "Clear",
+                                key="-CLEAR_PENALTY-",
+                                enable_events=True,
+                                pad=(10, 10),
+                            ),
+                        ]
+                    ],
+                    expand_x=True,
+                    pad=(5, 20),
+                ),
+                sg.Frame(
+                    "POINTS",
+                    [
+                        [
+                            sg.Spin(
+                                values=list(range(1, 11)),
+                                initial_value=1,
+                                size=(2, 1),
+                                key="-POINTS-",
+                                pad=((10, 0), 10),
+                                font=("Arial", 20),
+                            ),
+                            sg.Button(
+                                "Award",
+                                key="-GIVE-",
+                                enable_events=True,
+                                pad=((10, 0), 10),
+                            ),
+                            sg.Button(
+                                "Deduct",
+                                key="-DEDUCT-",
+                                enable_events=True,
+                                pad=(10, 10),
+                            ),
+                        ]
+                    ],
+                    expand_x=True,
+                    pad=(5, 20),
+                ),
+            ],
+            [
+                sg.Push(),
+                sg.Button(
+                    "DONE",
+                    key="-DONE-",
+                    enable_events=True,
+                ),
+                sg.Push(),
+            ],
         ]
 
-        popup = sg.Window("Buzz", layout, finalize=True, font=("Arial", 15))
+        popup = sg.Window(msg, layout, finalize=True, font=("Arial", 15))
         self.popup = popup
 
     def get_popup_event(self):
@@ -135,5 +267,3 @@ class Gui:
     def close_popup(self):
         self.popup.close()
         self.popup = None
-
-    

@@ -2,15 +2,23 @@ from flask import Flask, request, render_template
 import queue
 from threading import Thread
 from content import Team
+import socket
+
+
+PORT = 600
 
 
 class Server:
     def __init__(self):
         self.queue = queue.Queue()
-        self.buzzed = [False] * 2
-        self.accepting = [False] * 2
+        self.buzzed = [False] * len(Team)
+        self.accepting = [False] * len(Team)
         thread = Thread(target=self.__run_thread, args=())
         thread.start()
+
+    def get_url(self):
+        hostname = socket.gethostname()
+        return "http://" + socket.gethostbyname(hostname) + f":{PORT}"
 
     def has_next(self):
         return not self.queue.empty()
@@ -19,13 +27,13 @@ class Server:
         return self.queue.get()
 
     def close_all(self):
-        self.accepting = [False] * len(self.accepting)
+        self.accepting = [False] * len(Team)
 
     def open(self, team):
         self.accepting[team.value] = True
 
     def reset_buzzers(self):
-        self.buzzed = [False] * len(self.buzzed)
+        self.buzzed = [False] * len(Team)
 
     def __run_thread(self):
         app = Flask(__name__)
@@ -52,7 +60,7 @@ class Server:
 
             return render_template("blue.html")
 
-        app.run(debug=False, host="0.0.0.0", port=600)
+        app.run(debug=False, host="0.0.0.0", port=PORT)
 
 
 if __name__ == "__main__":

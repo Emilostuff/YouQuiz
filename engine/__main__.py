@@ -20,10 +20,9 @@ class Program:
     def __init__(self, gui, server, songs):
         if len(songs) == 0:
             raise Exception("Can't make program from empty song list")
-        self.gui = gui
-
-        self.songs = songs
-        self.server = server
+        self.gui: Gui = gui
+        self.songs: list[Song] = songs
+        self.server: Server = server
 
         # PROGRAM STATE VARIABLES
         self.state = State.UNLOADED
@@ -32,6 +31,34 @@ class Program:
         self.points = [0] * len(Team)
         self.timers = [0.0] * len(Team)
         self.last_time = None
+        self.buzzers_enabled = True
+
+    def reset_timers(self):
+        self.timers = [0.0] * len(Team)
+
+    def update_timers(self):
+        now = time.time()
+        elapsed = now - self.last_time
+        self.last_time = now
+        for team in Team:
+            remaining = self.timers[team.value]
+            if remaining != 0.0:
+                self.timers[team.value] = max(remaining - elapsed, 0.0)
+
+    def update_teams(self):
+        for team in Team:
+            # timers
+            if self.timers[team.value] != 0.0:
+                self.gui.window[f"-{team.name}_PENALTIES-"].update(
+                    f"{self.timers[team.value]:.1f} s"
+                )
+            else:
+                self.gui.window[f"-{team.name}_PENALTIES-"].update(f"-")
+
+            # points
+            self.gui.window[f"-{team.name}_POINTS-"].update(
+                f"{self.points[team.value]}"
+            )
 
     def start_player(self):
         if self.player is not None and not self.player.is_playing():
@@ -59,9 +86,8 @@ class Program:
     def load_song(self):
         index = self.gui.song_index()
         # log
-        if self.loaded_song != self.songs[index]:
-            self.gui.log("———————————————————————————")
-            self.gui.log(f"SONG: {self.songs[index].title}")
+        self.gui.log(f"{self.songs[index].title}:", new=True)
+
         # update ui and state
         self.loaded_song = self.songs[index]
         self.player = self.loaded_song.get_player()
@@ -70,96 +96,125 @@ class Program:
         self.gui.reload_song_list(self.songs)
         self.gui.update_progress_bar(self.player.get_position())  # always shows 0.0
 
+        self.buzzers_enabled = True
+        self.gui.window["-ENABLE-"].update(True)
+
     def mark_song(self):
         index = self.gui.song_index()
         self.songs[index].used = not self.songs[index].used
         self.gui.reload_song_list(self.songs)
 
+    def open_server(self):
+        if self.buzzers_enabled:
+            for team in Team:
+                if self.timers[team.value] == 0.0:
+                    self.server.open(team)
+
+    def check_buzz_enable(self):
+        self.buzzers_enabled = self.gui.window["-ENABLE-"].get()
+
+    def run_team_popup(self, team, msg):
+        self.gui.open_popup(msg)
+        while True:
+            # read event
+            _ = self.gui.get_event()
+            event = self.gui.get_popup_event()
+            if event == "Exit" or event == "-DONE-":
+                break
+            elif event == "-PENALTY-":
+                self.timers[team.value] += 5.0
+                self.gui.log(f"{team.name} got a 5 second time penalty", indent=True)
+            elif event == "-CLEAR_PENALTY-" and self.timers[team.value] != 0.0:
+                self.timers[team.value] = 0.0
+                self.gui.log(f"{team.name}'s time penalty was cleared", indent=True)
+            elif event == "-GIVE-":
+                points = self.gui.popup["-POINTS-"].get()
+                end = "" if points == 1 else "s"
+                self.gui.log(
+                    f"{team.name} was awarded {points} point" + end, indent=True
+                )
+                self.points[team.value] += points
+            elif event == "-DEDUCT-":
+                points = self.gui.popup["-POINTS-"].get()
+                end = "" if points == 1 else "s"
+                self.gui.log(
+                    f"{team.name} was deducted {points} point" + end, indent=True
+                )
+                self.points[team.value] -= points
+
+            if event is not None:
+                self.update_teams()
+
+        self.gui.close_popup()
+
     def run(self):
+        # log server location
+        self.gui.log(f"Music Quiz Server:  {self.server.get_url()}")
+        self.gui.log(f"———")
+
         # Run the Event Loop
         while True:
             # read event
             event = self.gui.get_event()
 
-            # a
+            # always handle these
             if event == "Exit":
                 break
-
-            if event == "-MARK-":
+            elif event == "-MARK-":
                 self.mark_song()
+            elif event == "-ENABLE-":
+                self.check_buzz_enable()
 
-            # buzz
+            # check for buzz
             if self.server.has_next():
-                #self.gui.window.hide()
                 self.change_state_to(State.BUZZED)
 
-            # State specific behavior
+            # state specific handling
             if self.state == State.UNLOADED or self.state == State.PAUSED:
                 if event == "-LOAD-":
                     self.load_song()
-                    self.timers = [0.0] * len(Team)
+                    self.reset_timers()
                     self.change_state_to(State.PAUSED)
+                    self.update_teams()
 
             if self.state == State.PAUSED:
                 if event == "-PLAYPAUSE-":
                     self.change_state_to(State.PLAYING)
+                    self.check_buzz_enable()
+                    self.open_server()
 
-                    for team in Team:
-                        if self.timers[team.value] == 0.0:
-                            self.server.open(team)
+                elif event == "-EDIT_RED-":
+                    self.run_team_popup(Team.RED, f"Updating Red Team")
+                elif event == "-EDIT_BLUE-":
+                    self.run_team_popup(Team.BLUE, f"Updating Blue Team")
 
             elif self.state == State.PLAYING:
                 self.gui.update_progress_bar(self.player.get_position())
+                self.update_timers()
+                self.update_teams()
 
-                now = time.time()
-                elapsed = now - self.last_time
-                self.last_time = now
-                for team in Team:
-                    remaining = self.timers[team.value]
-                    if remaining != 0.0:
-                        self.timers[team.value] = max(remaining - elapsed, 0.0)
-                        if self.timers[team.value] == 0.0:
-                            self.server.open(team)
+                if self.buzzers_enabled:
+                    self.open_server()
+                else:
+                    self.server.close_all()
 
-                    
-                # pause
                 if event == "-PLAYPAUSE-":
                     self.change_state_to(State.PAUSED)
-                    
                     self.server.close_all()
 
             elif self.state == State.BUZZED:
-                # get team
+                # get team and show popup
                 team = self.server.get()
-
-                # open popup
-                self.gui.open_popup(team)
-                while True:
-                    # read event
-                    _ = self.gui.get_event()
-                    event = self.gui.get_popup_event()
-                    if event == "Exit":
-                        break
-                    elif event == "-PENALTY-":
-                        self.timers[team.value] = 5.0
-                        self.gui.log(f" · Team {team.name} gets a time penalty")
-                        break
-                    elif event == "-GIVE-":
-                        points = self.gui.popup["-POINTS-"].get()
-                        self.gui.log(f" · Team {team.name} is awarded {points} points")
-                        self.points[team.value] += points
-                        break
-
-                self.gui.close_popup()
-                    
+                self.gui.log(f"{team.name} buzzed in!", indent=True)
+                self.run_team_popup(team, f"{team.name} Buzzed In!")
 
                 # return to pause state
                 if not self.server.has_next():
                     self.server.reset_buzzers()
                     self.server.close_all()
                     self.change_state_to(State.PAUSED)
-                    # self.gui.window.un_hide()
 
+        # shut down gracefully
         self.pause_player()
         self.gui.window.close()
 
