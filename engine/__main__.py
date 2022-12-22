@@ -117,6 +117,7 @@ class Program:
         self.gui.open_popup(msg)
         while True:
             # read event
+            self.gui.popup.TKroot.focus_force()
             _ = self.gui.get_event()
             event = self.gui.get_popup_event()
             if event == "Exit" or event == "-DONE-":
@@ -154,6 +155,7 @@ class Program:
 
         # Run the Event Loop
         while True:
+            self.gui.window["-PLAYPAUSE-"].set_focus()
             # read event
             event = self.gui.get_event()
 

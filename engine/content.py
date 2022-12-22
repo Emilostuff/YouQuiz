@@ -4,6 +4,7 @@ import vlc
 from dataclasses import dataclass
 import os
 from enum import Enum
+from threading import Thread
 
 PATH = "temp"
 
@@ -37,6 +38,7 @@ class Audio:
         # return player
         player = instance.media_player_new()
         player.set_media(media)
+        
         return player
 
 
@@ -50,21 +52,32 @@ class Config:
         with open(file, "r") as f:
             self.data = yaml.load(f, Loader=yaml.Loader)
 
-    def get_songs(self):
-        songs = []
-        for song_info in self.data["songs"]:
-            # get audio stream url
-            video = pafy.new(song_info["url"])
-            best = video.getbestaudio()
-            path = best.download(filepath=PATH)
+    def get_songs(self, ):
+        entries = self.data["songs"]
+        songs = [None] * len(entries)
+        handles = []
+        
+        for (i, song_info) in enumerate(entries):
+            def fetch(i, song_info):
+                # get audio stream url
+                video = pafy.new(song_info["url"])
+                best = video.getbestaudio()
+                path = best.download(filepath=PATH)
 
-            # parse info
-            title = song_info["title"] if "title" in song_info else video.title
-            start = song_info["start"] if "start" in song_info else 0
-            stop = song_info["stop"] if "stop" in song_info else None
-            note = song_info["note"] if "note" in song_info else ""
+                # parse info
+                title = song_info["title"] if "title" in song_info else video.title
+                start = song_info["start"] if "start" in song_info else 0
+                stop = song_info["stop"] if "stop" in song_info else None
+                note = song_info["note"] if "note" in song_info else ""
 
-            songs.append(Audio(path, title, note, start, stop))
+                songs[i] = Audio(path, title, note, start, stop)
+
+            thread = Thread(target=fetch, args=(i, song_info))
+            thread.start()
+            handles.append(thread)
+
+        for thread in handles:
+            thread.join()
 
         return songs
 
