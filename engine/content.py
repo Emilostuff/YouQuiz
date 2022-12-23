@@ -7,44 +7,94 @@ from enum import Enum
 from threading import Thread
 
 
+PATH = "temp"
+STD_BUZZ = {"url": "https://www.youtube.com/watch?v=f1kA5ozNbzg&ab_channel=Memefinity"}
+
+
+class QuizConfig:
+    def __init__(self, path):
+        # make downloads folder if it does not exist
+        if not os.path.exists(PATH):
+            os.makedirs(PATH)
+
+        # parse YAML
+        with open(path, "r") as f:
+            data = yaml.load(f, Loader=yaml.Loader)
+
+        # parse settings (or set to default)
+        settings = data.get("settings", dict())
+        self.title: str = settings.get("title", "A Music Quiz")
+        self.number_of_teams: int = settings.get("teams", 2)
+        if self.number_of_teams < 2 or self.number_of_teams > 4:
+            raise ValueError("Invalid number of teams")
+        self.penalty_time: float = settings.get("penalty_time", 5)
+        if self.penalty_time < 1:
+            raise ValueError("Penalty time should be at least 1 second")
+
+        # construct teams
+        buzzers = data.get("buzzers", dict())
+        red = Team("RED", 0, Audio(buzzers.get("red", STD_BUZZ)).get_player())
+        blue = Team("BLUE", 1, Audio(buzzers.get("blue", STD_BUZZ)).get_player())
+        green = Team("GREEN", 0, Audio(buzzers.get("green", STD_BUZZ)).get_player())
+        yellow = Team("YELLOW", 0, Audio(buzzers.get("yellow", STD_BUZZ)).get_player())
+        self.teams = TeamList(
+            red,
+            blue,
+            green if self.number_of_teams > 2 else None,
+            yellow if self.number_of_teams == 4 else None,
+        )
+
+        # get songs
+        entries = data["songs"]
+        self.songs = [None] * len(entries)
+        handles = []
+
+        for (i, info) in enumerate(entries):
+
+            thread = Thread(target=lambda (i, info): self.songs[i] = Audio(info), args=(i, info))
+            thread.start()
+            handles.append(thread)
+
+        for thread in handles:
+            thread.join()
+
+
 @dataclass
 class Team:
     name: str
-    color: str
+    ID: int
     buzzer: vlc.MediaPlayer
-    timer: float = 0.0
-    points: int = 0
-    
-    
-    
 
 
 @dataclass
-class TeamCollection:
+class TeamList:
     red: Team
     blue: Team
     green: Team | None
     yellow: Team | None
 
-    
-    
+    def __iter__(self):
+        yield self.red
+        yield self.blue
+        if self.green is not None:
+            yield self.green
+        if self.yellow is not None:
+            yield self.yellow
 
-PATH = "temp"
+    def __len__(self):
+        pass
 
 
-class Team(Enum):
-    RED = 0
-    BLUE = 1
-
-
-@dataclass
 class Audio:
-    file: str
-    title: str
-    note: str
-    start: int
-    stop: int = None
-    used: bool = False
+    def __init__(self, info):
+        video = pafy.new(info["url"])
+        best = video.getbestaudio()
+
+        self.file = best.download(filepath=PATH)
+        self.title = info.get("title", video.title)
+        self.start = info.get("start", 0)
+        self.stop = info.get("stop", None)
+        self.note = info.get("note", "")
 
     def get_player(self):
         # load VLC instance and media
@@ -61,65 +111,4 @@ class Audio:
         # return player
         player = instance.media_player_new()
         player.set_media(media)
-        
         return player
-
-
-class Config:
-    def __init__(self, file):
-        # make downloads folder if it does not exist
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
-
-        # parse YAML
-        with open(file, "r") as f:
-            self.data = yaml.load(f, Loader=yaml.Loader)
-
-    def get_songs(self, ):
-        entries = self.data["songs"]
-        songs = [None] * len(entries)
-        handles = []
-        
-        for (i, song_info) in enumerate(entries):
-            def fetch(i, song_info):
-                # get audio stream url
-                video = pafy.new(song_info["url"])
-                best = video.getbestaudio()
-                path = best.download(filepath=PATH)
-
-                # parse info
-                title = song_info["title"] if "title" in song_info else video.title
-                start = song_info["start"] if "start" in song_info else 0
-                stop = song_info["stop"] if "stop" in song_info else None
-                note = song_info["note"] if "note" in song_info else ""
-
-                songs[i] = Audio(path, title, note, start, stop)
-
-            thread = Thread(target=fetch, args=(i, song_info))
-            thread.start()
-            handles.append(thread)
-
-        for thread in handles:
-            thread.join()
-
-        return songs
-
-    def get_buzzers(self):
-        buzzers = []
-        
-        for (i, team_info) in enumerate(self.data["buzzers"]):
-            # get audio stream url
-            video = pafy.new(team_info["url"])
-            best = video.getbestaudio()
-            path = best.download(filepath=PATH)
-
-            # parse info
-            start = team_info["start"] if "start" in team_info else 0
-            stop = team_info["stop"] if "stop" in team_info else None
-
-            if stop - start > 5.0:
-                raise Exception("Buzzer audio must not last more than 5 seconds")
-                
-            buzzers.append(Audio(path, f"{Team(i).name} Buzzer", "", start, stop))
-
-        return buzzers
