@@ -1,16 +1,37 @@
+# General settings ------------------------------------------------------
+settings:
+  title: My Awesome Music Quiz
+  teams: 4 # {2, 3, 4}
+  penalty_time: 5 # in seconds
+
+# Custom buzzer sounds --------------------------------------------------
 buzzers:
+  # Red team
   - url: https://www.youtube.com/watch?v=L6aT_oEhIKo&ab_channel=MovieMan
     start: 0.1
     stop: 4
-
+  # Blue team
+  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+    start: 9.2
+    stop: 10.5
+  # Green team
+  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+    start: 9.2
+    stop: 10.5
+  # Yellow team
   - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
     start: 9.2
     stop: 10.5
 
+# Songs to guess --------------------------------------------------------
 songs:
   - url: https://www.youtube.com/watch?v=9qoXa5_w3Gw
-    title: "Sauna - Vulfpeck"
-    note: "Guess all the things! Much information is stored here to make the line very long. Very long it must be.\nDoes line breaks work?"
+    title: Sauna - Vulfpeck
+    note: |
+      Guess all the things! 
+      Much information is stored here to make the line very long. 
+      Very long it must be.
+      Does line breaks work?
 
   - url: https://youtu.be/dTnHAITmuYQ?t=51
     start: 52
@@ -18,4 +39,3 @@ songs:
   - url: https://www.youtube.com/watch?v=6gKZj5lLcUk&ab_channel=Vulf
 
   - url: https://www.youtube.com/watch?v=le0BLAEO93g&ab_channel=Vulf
-

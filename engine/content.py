@@ -6,6 +6,29 @@ import os
 from enum import Enum
 from threading import Thread
 
+
+@dataclass
+class Team:
+    name: str
+    color: str
+    buzzer: vlc.MediaPlayer
+    timer: float = 0.0
+    points: int = 0
+    
+    
+    
+
+
+@dataclass
+class TeamCollection:
+    red: Team
+    blue: Team
+    green: Team | None
+    yellow: Team | None
+
+    
+    
+
 PATH = "temp"
 
 
