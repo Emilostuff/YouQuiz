@@ -1,22 +1,33 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect
 import queue
 from threading import Thread
-from content import Team
+from content import QuizConfig
 import socket
-from content import Audio
+from content import parse
+from werkzeug.serving import make_server
 
 
 PORT = 600
 
 
+class ServerThread(Thread):
+    def __init__(self, app):
+        Thread.__init__(self)
+        self.server = make_server(host="0.0.0.0", port=PORT, app=app)
+        self.ctx = app.app_context()
+        self.ctx.push()
+
+    def run(self):
+        self.server.serve_forever()
+
+
 class Server:
-    def __init__(self, buzzers: list[Audio]):
+    def __init__(self, cfg: QuizConfig):
+        self.cfg = cfg
         self.queue = queue.Queue()
-        self.buzzed = [False] * len(Team)
-        self.accepting = [False] * len(Team)
-        self.buzzers = [b.get_player() for b in buzzers]
-        thread = Thread(target=self.__run_thread, args=())
-        thread.start()
+        self.buzzed = [False] * self.cfg.n_teams
+        self.accepting = [False] * self.cfg.n_teams
+        self.__run()
 
     def get_url(self):
         hostname = socket.gethostname()
@@ -29,50 +40,71 @@ class Server:
         return self.queue.get()
 
     def close_all(self):
-        self.accepting = [False] * len(Team)
+        self.accepting = [False] * self.cfg.n_teams
 
     def open(self, team):
-        self.accepting[team.value] = True
+        self.accepting[team.ident] = True
 
     def reset_buzzers(self):
-        self.buzzed = [False] * len(Team)
+        self.buzzed = [False] * self.cfg.n_teams
 
-    def __run_thread(self):
+    def __buzz(self, team):
+        i = team.ident
+        if self.accepting[i] and not self.buzzed[i]:
+            self.queue.put(team)
+            self.buzzed[i] = True
+            team.play_buzzer()
+
+    def __run(self):
         app = Flask(__name__)
 
         @app.route("/")
         def home():
-            return render_template("index.html")
+            return render_template("index.html", count=self.cfg.n_teams)
 
         @app.route("/red", methods=["GET", "POST"])
         def red():
-            i = Team.RED.value
-            if self.accepting[i] and not self.buzzed[i] and request.method == "POST":
-                self.queue.put(Team.RED)
-                self.buzzed[i] = True
-                self.buzzers[i].stop()
-                self.buzzers[i].play()
-
+            team = self.cfg.teams.red
+            if request.method == "POST":
+                self.__buzz(team)
             return render_template("red.html")
 
         @app.route("/blue", methods=["GET", "POST"])
         def blue():
-            i = Team.BLUE.value
-            if self.accepting[i] and not self.buzzed[i] and request.method == "POST":
-                self.queue.put(Team.BLUE)
-                self.buzzed[i] = True
-                self.buzzers[i].stop()
-                self.buzzers[i].play()
-
+            team = self.cfg.teams.blue
+            if request.method == "POST":
+                self.__buzz(team)
             return render_template("blue.html")
 
-        app.run(debug=False, host="0.0.0.0", port=PORT)
+        @app.route("/green", methods=["GET", "POST"])
+        def green():
+            team = self.cfg.teams.green
+            if team is not None:
+                if request.method == "POST":
+                    self.__buzz(team)
+                return render_template("green.html")
+            else:
+                return redirect("/")
+
+        @app.route("/yellow", methods=["GET", "POST"])
+        def yellow():
+            team = self.cfg.teams.yellow
+            if team is not None:
+                if request.method == "POST":
+                    self.__buzz(team)
+                return render_template("yellow.html")
+            else:
+                return redirect("/")
+
+        self.thread = ServerThread(app)
+        self.thread.start()
+
+    def shutdown(self):
+        self.thread.server.shutdown()
 
 
 if __name__ == "__main__":
-    s = Server()
-    s.open(Team.RED)
-
-    while True:
-        if s.has_next():
-            print(f"Buzz from {s.get()}")
+    cfg = parse("config.yml")
+    s = Server(cfg)
+    input()
+    s.shutdown()

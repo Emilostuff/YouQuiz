@@ -25,6 +25,14 @@
     background-color: #1867c2;
 }
 
+.green {
+    background-color: #21a938;
+}
+
+.yellow {
+    background-color: #edcd15;
+}
+
 h1 {
     font-weight: bold;
     color: rgb(171, 171, 171);

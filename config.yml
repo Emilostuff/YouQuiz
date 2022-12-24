@@ -6,22 +6,22 @@ settings:
 
 # Custom buzzer sounds --------------------------------------------------
 buzzers:
-  # Red team
-  - url: https://www.youtube.com/watch?v=L6aT_oEhIKo&ab_channel=MovieMan
+  red:
+    url: https://www.youtube.com/watch?v=L6aT_oEhIKo&ab_channel=MovieMan
     start: 0.1
     stop: 4
-  # Blue team
-  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+  blue:
+    url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
     start: 9.2
     stop: 10.5
-  # Green team
-  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
-    start: 9.2
-    stop: 10.5
-  # Yellow team
-  - url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
-    start: 9.2
-    stop: 10.5
+  # green:
+  #   url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+  #   start: 9.2
+  #   stop: 10.5
+  # yellow:
+  #   url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
+  #   start: 9.2
+  #   stop: 10.5
 
 # Songs to guess --------------------------------------------------------
 songs:

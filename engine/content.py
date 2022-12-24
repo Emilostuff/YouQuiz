@@ -6,64 +6,22 @@ import os
 from enum import Enum
 from threading import Thread
 
-
+# defaults
 PATH = "temp"
 STD_BUZZ = {"url": "https://www.youtube.com/watch?v=f1kA5ozNbzg&ab_channel=Memefinity"}
-
-
-class QuizConfig:
-    def __init__(self, path):
-        # make downloads folder if it does not exist
-        if not os.path.exists(PATH):
-            os.makedirs(PATH)
-
-        # parse YAML
-        with open(path, "r") as f:
-            data = yaml.load(f, Loader=yaml.Loader)
-
-        # parse settings (or set to default)
-        settings = data.get("settings", dict())
-        self.title: str = settings.get("title", "A Music Quiz")
-        self.number_of_teams: int = settings.get("teams", 2)
-        if self.number_of_teams < 2 or self.number_of_teams > 4:
-            raise ValueError("Invalid number of teams")
-        self.penalty_time: float = settings.get("penalty_time", 5)
-        if self.penalty_time < 1:
-            raise ValueError("Penalty time should be at least 1 second")
-
-        # construct teams
-        buzzers = data.get("buzzers", dict())
-        red = Team("RED", 0, Audio(buzzers.get("red", STD_BUZZ)).get_player())
-        blue = Team("BLUE", 1, Audio(buzzers.get("blue", STD_BUZZ)).get_player())
-        green = Team("GREEN", 0, Audio(buzzers.get("green", STD_BUZZ)).get_player())
-        yellow = Team("YELLOW", 0, Audio(buzzers.get("yellow", STD_BUZZ)).get_player())
-        self.teams = TeamList(
-            red,
-            blue,
-            green if self.number_of_teams > 2 else None,
-            yellow if self.number_of_teams == 4 else None,
-        )
-
-        # get songs
-        entries = data["songs"]
-        self.songs = [None] * len(entries)
-        handles = []
-
-        for (i, info) in enumerate(entries):
-
-            thread = Thread(target=lambda (i, info): self.songs[i] = Audio(info), args=(i, info))
-            thread.start()
-            handles.append(thread)
-
-        for thread in handles:
-            thread.join()
+STD_NO_OF_TEAMS = 2
+STD_PENALTY_TIME = 5
 
 
 @dataclass
 class Team:
     name: str
-    ID: int
+    ident: int
     buzzer: vlc.MediaPlayer
+
+    def play_buzzer(self):
+        self.buzzers.stop()
+        self.buzzers.play()
 
 
 @dataclass
@@ -82,7 +40,7 @@ class TeamList:
             yield self.yellow
 
     def __len__(self):
-        pass
+        2 + int(self.green is not None) + int(self.yellow is not None)
 
 
 class Audio:
@@ -90,11 +48,11 @@ class Audio:
         video = pafy.new(info["url"])
         best = video.getbestaudio()
 
-        self.file = best.download(filepath=PATH)
-        self.title = info.get("title", video.title)
-        self.start = info.get("start", 0)
-        self.stop = info.get("stop", None)
-        self.note = info.get("note", "")
+        self.file: str = best.download(filepath=PATH, quiet=True)
+        self.title: str = info.get("title", video.title)
+        self.start: float = info.get("start", 0.0)
+        self.stop: float = info.get("stop", None)
+        self.note: str = info.get("note", "")
 
     def get_player(self):
         # load VLC instance and media
@@ -112,3 +70,74 @@ class Audio:
         player = instance.media_player_new()
         player.set_media(media)
         return player
+
+
+@dataclass
+class QuizConfig:
+    title: str
+    n_teams: int
+    penalty_time: float
+    teams: TeamList
+    songs: list[Audio]
+
+
+def parse(path) -> QuizConfig:
+    # make downloads folder if it does not exist
+    if not os.path.exists(PATH):
+        os.makedirs(PATH)
+
+    # parse YAML
+    with open(path, "r") as f:
+        data = yaml.load(f, Loader=yaml.Loader)
+
+    # parse settings (or set to default) and check validity
+    settings = data.get("settings", dict())
+    title: str = settings.get("title", "A Music Quiz")
+    n_teams: int = settings.get("teams", STD_NO_OF_TEAMS)
+    if n_teams < 2 or n_teams > 4:
+        raise ValueError("Invalid number of teams")
+    penalty_time: float = settings.get("penalty_time", STD_PENALTY_TIME)
+    if penalty_time < 1:
+        raise ValueError("Penalty time should be at least 1 second")
+    if len(data["songs"]) == 0:
+        raise Exception("Quiz must contain at least one song")
+
+    # collect all resources to be fetched
+    requests = []
+    for key in ["red", "blue", "green", "yellow"]:
+        requests.append(data.get("buzzers", dict()).get(key, STD_BUZZ))
+    requests.extend(data["songs"])
+
+    # fetch in parallel
+    result = [None] * len(requests)
+    handles = []
+
+    def fetch(i, info):
+        result[i] = Audio(info)
+
+    for (i, info) in enumerate(requests):
+        thread = Thread(target=fetch, args=(i, info))
+        thread.start()
+        handles.append(thread)
+
+    for thread in handles:
+        thread.join()
+
+    # construct teams
+    teams = TeamList(
+        Team("RED", 0, result[0].get_player()),
+        Team("BLUE", 1, result[1].get_player()),
+        Team("GREEN", 2, result[2].get_player()) if n_teams > 2 else None,
+        Team("YELLOW", 3, result[3].get_player()) if n_teams == 4 else None,
+    )
+
+    return QuizConfig(title, n_teams, penalty_time, teams, result[4:])
+
+
+if __name__ == "__main__":
+    cfg = parse("config.yml")
+    print(cfg.title)
+    print(cfg.n_teams)
+    print(cfg.penalty_time)
+    print(cfg.songs)
+    print(cfg.teams)

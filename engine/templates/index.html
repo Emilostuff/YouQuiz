@@ -12,9 +12,23 @@
     <form action="/red" method="get">
         <button type="submit" name="buzz" class="buzzer red">RED</button>
     </form>
+
     <form action="/blue" method="get">
-      <button type="submit" name="buzz" class="buzzer blue">BLUE</button>
-  </form>
+        <button type="submit" name="buzz" class="buzzer blue">BLUE</button>
+    </form>
+    {% if count > 2 %}
+    <form action="/green" method="get">
+        <button type="submit" name="buzz" class="buzzer green">GREEN</button>
+    </form>
+
+    {% endif %}
+    {% if count > 3 %}
+    <form action="/yellow" method="get">
+        <button type="submit" name="buzz" class="buzzer yellow">YELLOW</button>
+    </form>
+
+    {% endif %}
+
 </body>
 
 </html>

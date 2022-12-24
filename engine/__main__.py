@@ -1,10 +1,7 @@
-# from player import get_player
 from server import Server
-from content import Config, Audio
-import PySimpleGUI as sg
+from content import parse, Audio, QuizConfig
 from enum import Enum, auto
 from gui import Gui
-from content import Team
 import vlc
 import time
 
@@ -16,39 +13,37 @@ class State(Enum):
     BUZZED = auto()
 
 
-class Program:
-    def __init__(self, gui, server, songs):
-        if len(songs) == 0:
-            raise Exception("Can't make program from empty song list")
-        self.gui: Gui = gui
-        self.songs: list[Audio] = songs
-        self.server: Server = server
+class ProgramOld:
+    def __init__(self, config: QuizConfig, gui: Gui, server: Server):
+        self.config = config
+        self.gui = gui
+        self.server = server
 
         # PROGRAM STATE VARIABLES
         self.state = State.UNLOADED
         self.loaded_song: Audio = None
         self.player: vlc.MediaPlayer = None
-        self.points = [0] * len(Team)
-        self.timers = [0.0] * len(Team)
+        self.points = [0] * config.n_teams
+        self.timers = [0.0] * config.n_teams
         self.last_time = None
         self.buzzers_enabled = True
 
     def reset_timers(self):
-        self.timers = [0.0] * len(Team)
+        self.timers = [0.0] * self.config.n_teams
 
     def update_timers(self):
         now = time.time()
         elapsed = now - self.last_time
         self.last_time = now
-        for team in Team:
-            remaining = self.timers[team.value]
+        for team in self.config.teams:
+            remaining = self.timers[team.ident]
             if remaining != 0.0:
-                self.timers[team.value] = max(remaining - elapsed, 0.0)
+                self.timers[team.ident] = max(remaining - elapsed, 0.0)
 
     def update_teams(self):
-        for team in Team:
+        for team in self.config.teams:
             # timers
-            if self.timers[team.value] != 0.0:
+            if self.timers[team.ident] != 0.0:
                 self.gui.window[f"-{team.name}_PENALTIES-"].update(
                     f"{self.timers[team.value]:.1f} s"
                 )
@@ -223,12 +218,10 @@ class Program:
 
 if __name__ == "__main__":
     # load content
-    cfg = Config("config.yml")
-    songs = cfg.get_songs()
-    buzzers = cfg.get_buzzers()
+    cfg = parse("config.yml")
 
     # set up and run server
-    server = Server(buzzers)
+    server = Server(cfg)
 
     # setup gui
     gui = Gui(songs)
