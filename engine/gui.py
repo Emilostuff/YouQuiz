@@ -13,18 +13,24 @@ class Gui:
 
         # define layout
         col1 = [*get_player_layout(), [sg.VPush()], *get_library_layout(cfg)]
-        col2 = [*get_teams_layout(cfg), [sg.VPush()], *get_log_layout()]
+        col2 = [*get_teams_layout(cfg), *get_log_layout()]
         layout = [
             [sg.Column(col1, expand_y=True), sg.T(), sg.Column(col2, expand_y=True)]
         ]
 
-        self.window = sg.Window(cfg.title, layout, finalize=True, font=FONT)
+        self.window = sg.Window(
+            cfg.title,
+            layout,
+            finalize=True,
+            font=FONT,
+            enable_close_attempted_event=False,
+        )
         self.set_song_index(0)
         sg.cprint_set_output_destination(self.window, "-LOG-")
 
     def get_event(self):
         event, values = self.window.read(timeout=10)
-        if event == sg.WIN_CLOSED:
+        if event == sg.WINDOW_CLOSED:
             event = "Exit"
         return event
 
@@ -115,7 +121,7 @@ def get_library_layout(cfg):
             sg.Listbox(
                 values=[song.title for song in cfg.songs],
                 enable_events=True,
-                size=(COL_WIDTH, 20),
+                size=(COL_WIDTH, 25),
                 key="-SONGS-",
                 no_scrollbar=True,
             )
@@ -171,10 +177,11 @@ def get_log_layout():
         [sg.Text("EVENT LOG", font=TITLE_FONT)],
         [
             sg.Multiline(
-                size=(COL_WIDTH, 21),
+                size=COL_WIDTH,
                 key="-LOG-",
                 disabled=True,
                 no_scrollbar=True,
+                expand_y=True,
             )
         ],
     ]

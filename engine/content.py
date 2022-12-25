@@ -20,8 +20,8 @@ class Team:
     buzzer: vlc.MediaPlayer
 
     def play_buzzer(self):
-        self.buzzers.stop()
-        self.buzzers.play()
+        self.buzzer.stop()
+        self.buzzer.play()
 
 
 @dataclass

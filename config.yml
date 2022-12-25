@@ -14,14 +14,12 @@ buzzers:
     url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
     start: 9.2
     stop: 10.5
-  # green:
-  #   url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
-  #   start: 9.2
-  #   stop: 10.5
-  # yellow:
-  #   url: https://www.youtube.com/watch?v=em7MmfpzrX8&ab_channel=ASKUL
-  #   start: 9.2
-  #   stop: 10.5
+  green:
+    url: https://www.youtube.com/watch?v=XRAkFTjk2qM&ab_channel=4chanStuff
+    start: 0.2
+  yellow:
+    url: https://www.youtube.com/watch?v=uZbluITLgyg&ab_channel=SoundHome
+    start: 0.3
 
 # Songs to guess --------------------------------------------------------
 songs:
