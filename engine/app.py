@@ -29,6 +29,9 @@ class Program:
         self.last_time = None
         self.buzzers_enabled = True
 
+        # give server access to points and timers
+        self.server.setup_read_access(self)
+
     def reset_timers(self):
         self.timers = [0.0] * self.cfg.n_teams
 
@@ -113,7 +116,7 @@ class Program:
         self.gui.open_popup(msg, self.cfg)
         while True:
             # read event
-            self.gui.popup.TKroot.focus_force()
+            # self.gui.popup.TKroot.focus_force()
             _ = self.gui.get_event()
             event = self.gui.get_popup_event()
             if event == "Exit" or event == "-DONE-":
