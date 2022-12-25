@@ -106,5 +106,6 @@ class Server:
 if __name__ == "__main__":
     cfg = parse("config.yml")
     s = Server(cfg)
+    print(s.get_url())
     input()
     s.shutdown()
