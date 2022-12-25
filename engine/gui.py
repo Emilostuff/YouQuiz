@@ -68,7 +68,7 @@ class Gui:
     # popup related
     def open_popup(self, msg, cfg):
         self.popup = sg.Window(
-            msg, get_popup_layout(msg, cfg), finalize=True, font=FONT
+            msg, get_popup_layout(msg, cfg), finalize=True, font=FONT, keep_on_top=True
         )
 
     def get_popup_event(self):

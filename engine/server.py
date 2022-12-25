@@ -104,7 +104,7 @@ class Server:
 
 
 if __name__ == "__main__":
-    cfg = parse("config.yml")
+    cfg = parse("examples/test.yml")
     s = Server(cfg)
     print(s.get_url())
     input()

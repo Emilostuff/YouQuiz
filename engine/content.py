@@ -113,7 +113,9 @@ def parse(path) -> QuizConfig:
     handles = []
 
     def fetch(i, info):
-        result[i] = Audio(info)
+        audio = Audio(info)
+        print(f"Fetched: {audio.title}")
+        result[i] = audio
 
     for (i, info) in enumerate(requests):
         thread = Thread(target=fetch, args=(i, info))
@@ -135,7 +137,7 @@ def parse(path) -> QuizConfig:
 
 
 if __name__ == "__main__":
-    cfg = parse("config.yml")
+    cfg = parse("examples/test.yml")
     print(cfg.title)
     print(cfg.n_teams)
     print(cfg.penalty_time)
