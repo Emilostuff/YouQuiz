@@ -2,7 +2,7 @@
 settings:
   title: Family Test Quiz
   teams: 3 # {2, 3, 4}
-  penalty_time: 5 # in seconds
+  penalty_time: 10 # in seconds
 
 # Custom buzzer sounds --------------------------------------------------
 buzzers:

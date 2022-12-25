@@ -97,7 +97,7 @@ class Program:
 
     def mark_song(self):
         index = self.gui.song_index()
-        self.used[index]= not self.used[index]
+        self.used[index] = not self.used[index]
         self.gui.reload_song_list(self.cfg.songs, self.used)
 
     def open_server(self):
@@ -119,8 +119,11 @@ class Program:
             if event == "Exit" or event == "-DONE-":
                 break
             elif event == "-PENALTY-":
-                self.timers[team.ident] += 5.0
-                self.gui.log(f"{team.name} got a 5 second time penalty", indent=True)
+                self.timers[team.ident] += self.cfg.penalty_time
+                self.gui.log(
+                    f"{team.name} got a {self.cfg.penalty_time} second time penalty",
+                    indent=True,
+                )
             elif event == "-CLEAR_PENALTY-" and self.timers[team.ident] != 0.0:
                 self.timers[team.ident] = 0.0
                 self.gui.log(f"{team.name}'s time penalty was cleared", indent=True)
@@ -223,5 +226,3 @@ class Program:
             self.player.stop()
         self.gui.window.close()
         self.server.shutdown()
-
-
