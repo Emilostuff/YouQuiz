@@ -46,7 +46,7 @@ class Server:
 
     def get_url(self):
         hostname = socket.gethostname()
-        return "http://" + socket.gethostbyname(hostname) + f":{PORT}"
+        return "http://" + socket.gethostbyname_ex(hostname)[-1][-1] + f":{PORT}"
 
     def has_next(self):
         return not self.queue.empty()
@@ -130,9 +130,14 @@ class Server:
                     data["time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     data["value"] = self.program.timers[0]
 
-                    for team in self.cfg.teams:  
+                    focus_team = self.program.team_in_focus
+                    for team in self.cfg.teams:
                         data[f"{team.name}_points"] = self.program.points[team.ident]
                         data[f"{team.name}_timer"] = self.program.timers[team.ident]
+                        data[f"{team.name}_buzzed"] = self.buzzed[team.ident]
+                        data[f"{team.name}_in_focus"] = (
+                            focus_team is not None and focus_team is team
+                        )
 
                     yield f"data:{json.dumps(data)}\n\n"
                     time.sleep(STREAM_INTERVAL)

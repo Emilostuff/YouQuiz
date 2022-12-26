@@ -4,6 +4,7 @@ from enum import Enum, auto
 from gui import Gui
 import vlc
 import time
+import clipboard
 
 
 class State(Enum):
@@ -28,6 +29,7 @@ class Program:
         self.timers = [0.0] * config.n_teams
         self.last_time = None
         self.buzzers_enabled = True
+        self.team_in_focus = None
 
         # give server access to points and timers
         self.server.setup_read_access(self)
@@ -167,6 +169,10 @@ class Program:
                 self.mark_song()
             elif event == "-ENABLE-":
                 self.check_buzz_enable()
+            elif event == "Copy::log":
+                clipboard.copy(self.gui.window["-LOG-"].Widget.selection_get())
+            elif event == "Copy::info":
+                clipboard.copy(self.gui.window["-SONG_INFO-"].Widget.selection_get())
 
             self.gui.window["-PLAYPAUSE-"].set_focus()
 
@@ -213,12 +219,15 @@ class Program:
 
             elif self.state == State.BUZZED:
                 # get team and show popup
-                team = self.server.get()
-                self.gui.log(f"{team.name} buzzed in!", indent=True)
-                self.run_team_popup(team, f"{team.name} Buzzed In!")
+                self.team_in_focus = self.server.get()
+                self.gui.log(f"{self.team_in_focus.name} buzzed in!", indent=True)
+                self.run_team_popup(
+                    self.team_in_focus, f"{self.team_in_focus.name} Buzzed In!"
+                )
 
                 # return to pause state
                 if not self.server.has_next():
+                    self.team_in_focus = None
                     self.server.reset_buzzers()
                     self.server.close_all()
                     self.change_state_to(State.PAUSED)

@@ -101,8 +101,9 @@ def get_player_layout():
             sg.Multiline(
                 size=(COL_WIDTH, 7),
                 key="-SONG_INFO-",
-                disabled=True,
+                write_only=True,
                 no_scrollbar=True,
+                right_click_menu=['', ['Copy::info']]
             )
         ],
         [sg.T()],
@@ -179,9 +180,10 @@ def get_log_layout():
             sg.Multiline(
                 size=COL_WIDTH,
                 key="-LOG-",
-                disabled=True,
+                write_only=True,
                 no_scrollbar=True,
                 expand_y=True,
+                right_click_menu=['', ['Copy::log']]
             )
         ],
     ]
