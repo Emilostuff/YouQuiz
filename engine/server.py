@@ -90,14 +90,14 @@ class Server:
             team = self.cfg.teams.red
             if request.method == "POST":
                 self.__buzz(team)
-            return render_template("red.html")
+            return render_template("buzzer.html", color=team.name.lower())
 
         @app.route("/blue", methods=["GET", "POST"])
         def blue():
             team = self.cfg.teams.blue
             if request.method == "POST":
                 self.__buzz(team)
-            return render_template("blue.html")
+            return render_template("buzzer.html", color=team.name.lower())
 
         @app.route("/green", methods=["GET", "POST"])
         def green():
@@ -105,7 +105,7 @@ class Server:
             if team is not None:
                 if request.method == "POST":
                     self.__buzz(team)
-                return render_template("green.html")
+                return render_template("buzzer.html", color=team.name.lower())
             else:
                 return redirect("/")
 
@@ -115,7 +115,7 @@ class Server:
             if team is not None:
                 if request.method == "POST":
                     self.__buzz(team)
-                return render_template("yellow.html")
+                return render_template("buzzer.html", color=team.name.lower())
             else:
                 return redirect("/")
 

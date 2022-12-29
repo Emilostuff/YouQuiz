@@ -1,3 +1,4 @@
+
 span {
     display: inline-block;
     vertical-align: middle;
@@ -19,32 +20,32 @@ span {
     margin-bottom: 5vh;
 }
 
-
 .box { 
-    width: 100%; 
-    height: 10vh; 
-    border-radius: 5vh;
+    border-radius: 5vh !important;
     margin: auto;
  } 
 
  .fullscreen {
-    height: 80vh;
+    height: 85vh !important;
+    width: 100% !important;
 }
 
 .red {
-    background-color: #db1a4d;
+    background-color: #db1a4d !important;
 }
 
 .blue {
-    background-color: #1867c2;
+    background-color: #1867c2 !important;
 }
 
-.green {
-    background-color: #21a938;
+
+.green{
+    background-color: #21a938 !important;
 }
+
 
 .yellow {
-    background-color: #edcd15;
+    background-color: #edcd15 !important;
 }
 
 h1 {
@@ -64,3 +65,13 @@ h2 {
     font-family: sans-serif;
     margin-bottom: 5vh;
 }
+
+h3 {
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+    font-size: 120px;
+    text-align: center;
+    font-family: sans-serif;
+    text-transform: uppercase;
+}
+

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Green Team</title>
+    <title>{{ color|upper }} Team</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css"
         integrity="sha512-T584yQ/tdRR5QwOpfvDfVQUidzfgc2339Lc8uBDtcp/wYu80d7jwBgAxbyMh0a9YM9F8N3tdErpFI8iaGx6x5g=="
         crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -12,7 +12,7 @@
 
 <body>
     <section class="section h-100 fullscreen">
-        <button type="button" class="btn green box btn-lg btn-block h-100" id="buzzer">
+        <button type="button" class="btn {{ color }} box btn-lg btn-block h-100" id="buzzer">
             <h3>BUZZ</h3>
         </button>
     </section>
@@ -30,7 +30,7 @@
             buzzer.style.cursor = 'pointer';
             buzzer.onclick = function () {
                 var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/green", false);
+                xhr.open("POST", "/{{ color }}", false);
                 xhr.setRequestHeader('Content-Type', 'application/json');
                 xhr.send("");
             };
