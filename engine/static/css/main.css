@@ -1,9 +1,8 @@
-
 span {
     display: inline-block;
     vertical-align: middle;
     line-height: normal;
-  }
+}
 
 .buzzer {
     display: block;
@@ -20,12 +19,20 @@ span {
     margin-bottom: 5vh;
 }
 
-.box { 
-    border-radius: 5vh !important;
-    margin: auto;
- } 
+.rounded {
+    border-radius: 5vh !important
+}
 
- .fullscreen {
+.mb-60 {
+    margin-bottom: 60px !important;
+}
+
+.mt-60 {
+    margin-top: 60px !important;
+}
+
+
+.fullscreen {
     height: 85vh !important;
     width: 100% !important;
 }
@@ -39,7 +46,7 @@ span {
 }
 
 
-.green{
+.green {
     background-color: #21a938 !important;
 }
 
@@ -54,7 +61,6 @@ h1 {
     font-size: 100px;
     text-align: center;
     font-family: sans-serif;
-    margin-bottom: 5vh;
 }
 
 h2 {
@@ -73,5 +79,5 @@ h3 {
     text-align: center;
     font-family: sans-serif;
     text-transform: uppercase;
+    padding: 30px;
 }
-
