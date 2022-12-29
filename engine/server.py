@@ -5,6 +5,7 @@ from flask import (
     redirect,
     Response,
     stream_with_context,
+    abort,
 )
 import queue
 from threading import Thread, Lock
@@ -36,8 +37,8 @@ class Server:
     def __init__(self, cfg: QuizConfig):
         self.cfg = cfg
         self.queue = queue.Queue()
-        self.buzzed = [False] * self.cfg.n_teams
-        self.accepting = [False] * self.cfg.n_teams
+        self.buzzed = {team: False for team in self.cfg.teams.values()}
+        self.accepting = {team: False for team in self.cfg.teams.values()}
         self.lock = Lock()
         self.__run()
 
@@ -56,25 +57,24 @@ class Server:
 
     def close_all(self):
         self.lock.acquire()
-        self.accepting = [False] * self.cfg.n_teams
+        self.accepting = {team: False for team in self.cfg.teams.values()}
         self.lock.release()
 
     def open(self, team):
         self.lock.acquire()
-        self.accepting[team.ident] = True
+        self.accepting[team] = True
         self.lock.release()
 
     def reset_buzzers(self):
         self.lock.acquire()
-        self.buzzed = [False] * self.cfg.n_teams
+        self.buzzed = {team: False for team in self.cfg.teams.values()}
         self.lock.release()
 
     def __buzz(self, team):
-        i = team.ident
         self.lock.acquire()
-        if self.accepting[i] and not self.buzzed[i]:
+        if self.accepting[team] and not self.buzzed[team]:
             self.queue.put(team)
-            self.buzzed[i] = True
+            self.buzzed[team] = True
             team.play_buzzer()
         self.lock.release()
 
@@ -85,33 +85,12 @@ class Server:
         def home():
             return render_template("index.html", count=self.cfg.n_teams)
 
-        @app.route("/red", methods=["GET", "POST"])
-        def red():
-            team = self.cfg.teams.red
-            if request.method == "POST":
-                self.__buzz(team)
-            return render_template("buzzer.html", color=team.name.lower())
+        @app.route("/<color>", methods=["GET", "POST"])
+        def buzzer(color):
+            if color not in self.cfg.teams:
+                abort(404)
 
-        @app.route("/blue", methods=["GET", "POST"])
-        def blue():
-            team = self.cfg.teams.blue
-            if request.method == "POST":
-                self.__buzz(team)
-            return render_template("buzzer.html", color=team.name.lower())
-
-        @app.route("/green", methods=["GET", "POST"])
-        def green():
-            team = self.cfg.teams.green
-            if team is not None:
-                if request.method == "POST":
-                    self.__buzz(team)
-                return render_template("buzzer.html", color=team.name.lower())
-            else:
-                return redirect("/")
-
-        @app.route("/yellow", methods=["GET", "POST"])
-        def yellow():
-            team = self.cfg.teams.yellow
+            team = self.cfg.teams[color]
             if team is not None:
                 if request.method == "POST":
                     self.__buzz(team)
@@ -121,18 +100,20 @@ class Server:
 
         @app.route("/live")
         def live() -> str:
-            return render_template("live.html", count=self.cfg.n_teams, title=self.cfg.title)
+            return render_template(
+                "live.html", count=self.cfg.n_teams, title=self.cfg.title
+            )
 
         def stream_data():
             try:
                 while True:
                     data = dict()
                     focus_team = self.program.team_in_focus
-                    for team in self.cfg.teams:
+                    for team in self.cfg.teams.values():
                         x = dict()
-                        x["points"] = self.program.points[team.ident]
-                        x["timer"] = round(self.program.timers[team.ident], 1)
-                        x["buzzed"] = self.buzzed[team.ident]
+                        x["points"] = self.program.points[team]
+                        x["timer"] = round(self.program.timers[team], 1)
+                        x["buzzed"] = self.buzzed[team]
                         x["focus"] = focus_team is not None and focus_team is team
                         data[team.name] = x
 

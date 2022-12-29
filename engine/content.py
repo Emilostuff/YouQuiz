@@ -11,36 +11,20 @@ PATH = "temp"
 STD_BUZZ = {"url": "https://www.youtube.com/watch?v=f1kA5ozNbzg&ab_channel=Memefinity"}
 STD_NO_OF_TEAMS = 2
 STD_PENALTY_TIME = 5
+TEAMS = ["red", "blue", "green", "yellow"]
 
 
 @dataclass
 class Team:
     name: str
-    ident: int
     buzzer: vlc.MediaPlayer
 
     def play_buzzer(self):
         self.buzzer.stop()
         self.buzzer.play()
 
-
-@dataclass
-class TeamList:
-    red: Team
-    blue: Team
-    green: Team | None
-    yellow: Team | None
-
-    def __iter__(self):
-        yield self.red
-        yield self.blue
-        if self.green is not None:
-            yield self.green
-        if self.yellow is not None:
-            yield self.yellow
-
-    def __len__(self):
-        2 + int(self.green is not None) + int(self.yellow is not None)
+    def __hash__(self):
+        return hash(self.name)
 
 
 class Audio:
@@ -77,7 +61,7 @@ class QuizConfig:
     title: str
     n_teams: int
     penalty_time: float
-    teams: TeamList
+    teams: dict[str, Team]
     songs: list[Audio]
 
 
@@ -104,7 +88,7 @@ def parse(path) -> QuizConfig:
 
     # collect all resources to be fetched
     requests = []
-    for key in ["red", "blue", "green", "yellow"]:
+    for key in TEAMS:
         requests.append(data.get("buzzers", dict()).get(key, STD_BUZZ))
     requests.extend(data["songs"])
 
@@ -126,12 +110,9 @@ def parse(path) -> QuizConfig:
         thread.join()
 
     # construct teams
-    teams = TeamList(
-        Team("RED", 0, result[0].get_player()),
-        Team("BLUE", 1, result[1].get_player()),
-        Team("GREEN", 2, result[2].get_player()) if n_teams > 2 else None,
-        Team("YELLOW", 3, result[3].get_player()) if n_teams == 4 else None,
-    )
+    teams = dict()
+    for (i, key) in enumerate(TEAMS[0:n_teams]):
+        teams[key] = Team(key.upper(), result[i].get_player())
 
     return QuizConfig(title, n_teams, penalty_time, teams, result[4:])
 

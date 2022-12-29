@@ -168,7 +168,7 @@ def get_team_layout(team):
 def get_teams_layout(cfg):
     return [
         [sg.Text("TEAMS", font=TITLE_FONT)],
-        *[get_team_layout(team) for team in cfg.teams],
+        *[get_team_layout(team) for team in cfg.teams.values()],
         [sg.T()],
     ]
 

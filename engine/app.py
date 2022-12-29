@@ -25,40 +25,42 @@ class Program:
         self.loaded_song: Audio = None
         self.player: vlc.MediaPlayer = None
         self.used = [False] * len(config.songs)
-        self.points = [0] * config.n_teams
-        self.timers = [0.0] * config.n_teams
+        self.points = {team: 0 for team in self.cfg.teams.values()}
+        self.timers = {team: 0.0 for team in self.cfg.teams.values()}
         self.last_time = None
         self.buzzers_enabled = True
         self.team_in_focus = None
+        self.inform = dict()
+
 
         # give server access to points and timers
         self.server.setup_read_access(self)
 
     def reset_timers(self):
-        self.timers = [0.0] * self.cfg.n_teams
+        self.timers = {team: 0.0 for team in self.cfg.teams.values()}
 
     def update_timers(self):
         now = time.time()
         elapsed = now - self.last_time
         self.last_time = now
-        for team in self.cfg.teams:
-            remaining = self.timers[team.ident]
+        for team in self.cfg.teams.values():
+            remaining = self.timers[team]
             if remaining != 0.0:
-                self.timers[team.ident] = max(remaining - elapsed, 0.0)
+                self.timers[team] = max(remaining - elapsed, 0.0)
 
     def update_teams(self):
-        for team in self.cfg.teams:
+        for team in self.cfg.teams.values():
             # timers
-            if self.timers[team.ident] != 0.0:
+            if self.timers[team] != 0.0:
                 self.gui.window[f"-{team.name}_PENALTIES-"].update(
-                    f"{self.timers[team.ident]:.1f} s"
+                    f"{self.timers[team]:.1f} s"
                 )
             else:
                 self.gui.window[f"-{team.name}_PENALTIES-"].update(f"-")
 
             # points
             self.gui.window[f"-{team.name}_POINTS-"].update(
-                f"{self.points[team.ident]}"
+                f"{self.points[team]}"
             )
 
     def start_player(self):
@@ -107,8 +109,8 @@ class Program:
 
     def open_server(self):
         if self.buzzers_enabled:
-            for team in self.cfg.teams:
-                if self.timers[team.ident] == 0.0:
+            for team in self.cfg.teams.values():
+                if self.timers[team] == 0.0:
                     self.server.open(team)
 
     def check_buzz_enable(self):
@@ -124,13 +126,13 @@ class Program:
             if event == "Exit" or event == "-DONE-":
                 break
             elif event == "-PENALTY-":
-                self.timers[team.ident] += self.cfg.penalty_time
+                self.timers[team] += self.cfg.penalty_time
                 self.gui.log(
                     f"{team.name} got a {self.cfg.penalty_time} second time penalty",
                     indent=True,
                 )
-            elif event == "-CLEAR_PENALTY-" and self.timers[team.ident] != 0.0:
-                self.timers[team.ident] = 0.0
+            elif event == "-CLEAR_PENALTY-" and self.timers[team] != 0.0:
+                self.timers[team] = 0.0
                 self.gui.log(f"{team.name}'s time penalty was cleared", indent=True)
             elif event == "-GIVE-":
                 points = self.gui.popup["-POINTS-"].get()
@@ -138,14 +140,14 @@ class Program:
                 self.gui.log(
                     f"{team.name} was awarded {points} point" + end, indent=True
                 )
-                self.points[team.ident] += points
+                self.points[team] += points
             elif event == "-DEDUCT-":
                 points = self.gui.popup["-POINTS-"].get()
                 end = "" if points == 1 else "s"
                 self.gui.log(
                     f"{team.name} was deducted {points} point" + end, indent=True
                 )
-                self.points[team.ident] -= points
+                self.points[team] -= points
 
             if event is not None:
                 self.update_teams()
@@ -195,13 +197,13 @@ class Program:
                     self.open_server()
 
                 elif event == "-RED_EDIT-":
-                    self.run_team_popup(self.cfg.teams.red, f"Updating Red Team")
+                    self.run_team_popup(self.cfg.teams["red"], f"Updating Red Team")
                 elif event == "-BLUE_EDIT-":
-                    self.run_team_popup(self.cfg.teams.blue, f"Updating Blue Team")
-                elif event == "-GREEN_EDIT-" and self.cfg.teams.green is not None:
-                    self.run_team_popup(self.cfg.teams.green, f"Updating Blue Team")
-                elif event == "-YELLOW_EDIT-" and self.cfg.teams.yellow is not None:
-                    self.run_team_popup(self.cfg.teams.yellow, f"Updating Blue Team")
+                    self.run_team_popup(self.cfg.teams["blue"], f"Updating Blue Team")
+                elif event == "-GREEN_EDIT-" and "green" in self.cfg.teams:
+                    self.run_team_popup(self.cfg.teams["green"], f"Updating Blue Team")
+                elif event == "-YELLOW_EDIT-" and  "yellow" in self.cfg.teams:
+                    self.run_team_popup(self.cfg.teams["yellow"], f"Updating Blue Team")
 
             elif self.state == State.PLAYING:
                 self.gui.update_progress_bar(self.player.get_position())
