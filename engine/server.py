@@ -40,6 +40,7 @@ class Server:
         self.buzzed = {team: False for team in self.cfg.teams.values()}
         self.accepting = {team: False for team in self.cfg.teams.values()}
         self.lock = Lock()
+        self.program = None
         self.__run()
 
     def setup_read_access(self, program):
@@ -91,21 +92,23 @@ class Server:
                 abort(404)
 
             team = self.cfg.teams[color]
-            if team is not None:
-                if request.method == "POST":
-                    self.__buzz(team)
-                return render_template("buzzer.html", color=team.name.lower())
-            else:
-                return redirect("/")
+            if request.method == "POST":
+                self.__buzz(team)
+            return render_template("buzzer.html", color=team.name.lower())
 
         @app.route("/live")
         def live() -> str:
             return render_template(
-                "live.html", count=self.cfg.n_teams, title=self.cfg.title
+                "live.html",
+                count=self.cfg.n_teams,
+                title=self.cfg.title,
+                teams=[t.name.lower() for t in self.cfg.teams.values()],
             )
 
         def stream_data():
             try:
+                while self.program is None:
+                    pass
                 while True:
                     data = dict()
                     focus_team = self.program.team_in_focus
@@ -115,7 +118,7 @@ class Server:
                         x["timer"] = round(self.program.timers[team], 1)
                         x["buzzed"] = self.buzzed[team]
                         x["focus"] = focus_team is not None and focus_team is team
-                        data[team.name] = x
+                        data[team.name.lower()] = x
 
                     yield f"data:{json.dumps(data)}\n\n"
                     time.sleep(STREAM_INTERVAL)

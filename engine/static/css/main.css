@@ -4,23 +4,24 @@ span {
     line-height: normal;
 }
 
-.buzzer {
-    display: block;
-    width: 100%;
-    height: 30vh;
-    border: none;
-    border-radius: 5vh;
-    color: #ffffff;
-    font-weight: 900;
-    padding: 2px 2px;
-    font-size: 150px;
-    cursor: pointer;
-    text-align: center;
-    margin-bottom: 5vh;
+
+
+.box {
+    height: 10vh;
+}
+
+.icon {
+    height: 60px;
+    font-size: 60px;
+    margin-bottom: 30px !important;
+}
+
+.disabled {
+    opacity: 0.2;
 }
 
 .rounded {
-    border-radius: 5vh !important
+    border-radius: 3vmin !important
 }
 
 .mb-60 {
@@ -31,10 +32,8 @@ span {
     margin-top: 60px !important;
 }
 
-
-.fullscreen {
-    height: 85vh !important;
-    width: 100% !important;
+.mt-30 {
+    margin-top: 30px !important;
 }
 
 .red {
@@ -55,10 +54,14 @@ span {
     background-color: #edcd15 !important;
 }
 
+.grey {
+    background-color: #ebebeb !important;
+}
+
 h1 {
     font-weight: bold;
     color: rgb(171, 171, 171);
-    font-size: 100px;
+    font-size: 80px;
     text-align: center;
     font-family: sans-serif;
 }
@@ -66,10 +69,11 @@ h1 {
 h2 {
     font-weight: bold;
     color: rgb(60, 60, 60);
-    font-size: 40px;
+    font-size: 50px;
     text-align: center;
     font-family: sans-serif;
-    margin-bottom: 5vh;
+    margin-bottom: 2vh;
+    padding-bottom: 3vh;
 }
 
 h3 {
@@ -79,5 +83,29 @@ h3 {
     text-align: center;
     font-family: sans-serif;
     text-transform: uppercase;
-    padding: 50px;
+    padding: 3vh;
+}
+
+h4 {
+    font-weight: bold;
+    color: rgb(255, 255, 255);
+    font-size: 40px;
+    text-align: center;
+    font-family: sans-serif;
+    text-transform: uppercase;
+    padding: 2vh;
+}
+
+h5 {
+    font-weight: bold;
+    color: rgb(179, 179, 179);
+    font-size: 20px;
+    text-align: center;
+    font-family: sans-serif;
+    text-transform: uppercase;
+}
+
+.fullscreen {
+    height: 85vh !important;
+    width: 100% !important;
 }

@@ -13,56 +13,30 @@
 </head>
 
 <body>
-    <section class="section">
+    <h1 class="mb-60 mt-60">{{ title }}</h1>
+
+    <section class="section mb-60">
         <div class="container">
             <div class="row">
-                <div class="col-12 text-center">
+                {% for team in teams %}
+                <div class="col col-sm-12 col-md-6 text-center">
                     <div class="content">
-                        <h1>{{ title }}</h1>
+                        <div>
+                            <span class="icon" id="{{ team }} icon"></span>
+                        </div>
+                        <div class="h-100 rounded grey">
+                            <div class="rounded {{ team }} box" id="{{ team }}">
+                                <h4>{{ team|upper}}</h4>
+                            </div>
+                            <h5 class="mt-30">Points</h5>
+                            <h2 id="{{ team }} points">-</h2>
+                            <h5 class="mt-30">Penalty Timer</h5>
+                            <h2 id="{{ team }} timer">-</h2>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </section>
-    <section class="section">
-        <div class="container">
-            <div class="row">
-                <div class="col-3 text-center">
-                    <div class="content">
-                        <div class="box red"></div>
-                        <h2 id="red points">-</h2>
-                        <h2 id="red timer">-</h2>
-                        <h2 id="red focus">-</h2>
-                        <h2 id="red buzzed">-</h2>
-                    </div>
-                </div>
-                <div class="col-3 text-center">
-                    <div class="content">
-                        <h2 id=>BLUE</h2>
-                        <h2 id="blue points">-</h2>
-                        <h2 id="blue timer">-</h2>
-                        <h2 id="blue focus">-</h2>
-                        <h2 id="blue buzzed">-</h2>
-                    </div>
-                </div>
-                <div class="col-3 text-center">
-                    <div class="content">
-                        <h2 id=>GREEN</h2>
-                        <h2 id="green points">-</h2>
-                        <h2 id="green timer">-</h2>
-                        <h2 id="green focus">-</h2>
-                        <h2 id="green buzzed">-</h2>
-                    </div>
-                </div>
-                <div class="col-3 text-center">
-                    <div class="content">
-                        <h2>YELLOW</h2>
-                        <h2 id="yellow points">-</h2>
-                        <h2 id="yellow timer">-</h2>
-                        <h2 id="yellow focus">-</h2>
-                        <h2 id="yellow buzzed">-</h2>
-                    </div>
-                </div>
+                {% endfor %}
+
             </div>
         </div>
     </section>
@@ -79,30 +53,41 @@
         $(document).ready(function () {
             const source = new EventSource("/live-data");
             const count = parseInt('{{ count }}');
+            const teams = JSON.parse('{{ teams|tojson }}');
+
+            var cols = document.getElementsByClassName('col');
+            [].forEach.call(cols, function (col) {
+                if (count == 4) {
+                    col.classList.add("col-lg-3");
+                } else if (count == 3) {
+                    col.classList.add("col-lg-4");
+                } else {
+                    col.classList.add("col-lg-6");
+                }
+            });
 
             source.onmessage = function (event) {
                 const data = JSON.parse(event.data);
 
-                // red
-                document.getElementById("red points").innerHTML = data.RED.points;
-                document.getElementById("red timer").innerHTML = data.RED.timer.toFixed(1);
-
-                // blue
-                document.getElementById("blue points").innerHTML = data.BLUE.points;
-                document.getElementById("blue timer").innerHTML = data.BLUE.timer.toFixed(1);
-
-                // green
-                if (count > 2) {
-                    document.getElementById("green points").innerHTML = data.GREEN.points;
-                    document.getElementById("green timer").innerHTML = data.GREEN.timer.toFixed(1);
+                for (name of teams) {
+                    document.getElementById(name + " points").innerHTML = data[name].points;
+                    if (data[name].timer > 0) {
+                        document.getElementById(name + " timer").innerHTML = data[name].timer.toFixed(1) + " s";
+                        document.getElementById(name).classList.add("disabled");
+                        document.getElementById(name + " icon").innerHTML = '&#9203;';
+                    } else {
+                        document.getElementById(name + " timer").innerHTML = "-"
+                        document.getElementById(name).classList.remove("disabled");
+                        if (data[name].focus) {
+                            document.getElementById(name + " icon").innerHTML = '&#11088;';
+                        }
+                        else if (data[name].buzzed) {
+                            document.getElementById(name + " icon").innerHTML = '&#128587;';
+                        } else {
+                            document.getElementById(name + " icon").innerHTML = '';
+                        }
+                    }
                 }
-
-                // yellow
-                if (count > 3) {
-                    document.getElementById("yellow points").innerHTML = data.YELLOW.points;
-                    document.getElementById("yellow timer").innerHTML = data.YELLOW.timer.toFixed(1);
-                }
-
 
             }
         });
