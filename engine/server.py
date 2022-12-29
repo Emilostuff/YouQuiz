@@ -121,23 +121,20 @@ class Server:
 
         @app.route("/live")
         def live() -> str:
-            return render_template("live.html")
+            return render_template("live.html", count=self.cfg.n_teams, title=self.cfg.title)
 
         def stream_data():
             try:
                 while True:
                     data = dict()
-                    data["time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    data["value"] = self.program.timers[0]
-
                     focus_team = self.program.team_in_focus
                     for team in self.cfg.teams:
-                        data[f"{team.name}_points"] = self.program.points[team.ident]
-                        data[f"{team.name}_timer"] = self.program.timers[team.ident]
-                        data[f"{team.name}_buzzed"] = self.buzzed[team.ident]
-                        data[f"{team.name}_in_focus"] = (
-                            focus_team is not None and focus_team is team
-                        )
+                        x = dict()
+                        x["points"] = self.program.points[team.ident]
+                        x["timer"] = round(self.program.timers[team.ident], 1)
+                        x["buzzed"] = self.buzzed[team.ident]
+                        x["focus"] = focus_team is not None and focus_team is team
+                        data[team.name] = x
 
                     yield f"data:{json.dumps(data)}\n\n"
                     time.sleep(STREAM_INTERVAL)

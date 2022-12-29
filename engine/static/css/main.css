@@ -1,3 +1,9 @@
+span {
+    display: inline-block;
+    vertical-align: middle;
+    line-height: normal;
+  }
+
 .buzzer {
     display: block;
     width: 100%;
@@ -13,7 +19,15 @@
     margin-bottom: 5vh;
 }
 
-.fullscreen {
+
+.box { 
+    width: 100%; 
+    height: 10vh; 
+    border-radius: 5vh;
+    margin: auto;
+ } 
+
+ .fullscreen {
     height: 80vh;
 }
 
@@ -37,6 +51,15 @@ h1 {
     font-weight: bold;
     color: rgb(171, 171, 171);
     font-size: 100px;
+    text-align: center;
+    font-family: sans-serif;
+    margin-bottom: 5vh;
+}
+
+h2 {
+    font-weight: bold;
+    color: rgb(60, 60, 60);
+    font-size: 40px;
     text-align: center;
     font-family: sans-serif;
     margin-bottom: 5vh;
