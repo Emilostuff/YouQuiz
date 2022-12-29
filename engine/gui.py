@@ -1,7 +1,7 @@
 import PySimpleGUI as sg
 import textwrap
 
-COL_WIDTH = 60
+COL_WIDTH = 75
 TITLE_FONT = ("Arial bold", 26)
 FONT = ("Arial", 15)
 
@@ -47,7 +47,7 @@ class Gui:
             names.append("   ✓   " + s.title if used[i] else s.title)
 
         self.window["-SONGS-"].update(
-            values=names, set_to_index=index, scroll_to_index=index
+            values=names, set_to_index=index
         )
 
     def update_player_info(self, song):
@@ -125,6 +125,7 @@ def get_library_layout(cfg):
                 size=(COL_WIDTH, 25),
                 key="-SONGS-",
                 no_scrollbar=True,
+                
             )
         ],
     ]
@@ -178,7 +179,7 @@ def get_log_layout():
         [sg.Text("EVENT LOG", font=TITLE_FONT)],
         [
             sg.Multiline(
-                size=COL_WIDTH,
+                size=COL_WIDTH - 20,
                 key="-LOG-",
                 write_only=True,
                 no_scrollbar=True,
