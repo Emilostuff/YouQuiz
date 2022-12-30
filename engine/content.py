@@ -35,18 +35,20 @@ class Audio:
         cached = cache.get(url, None)
         
         if cached is not None:
-            file, alt_title = cached
+            (file, alt_title, length) = cached
         else: 
             video = pafy.new(url)
             file = video.getbestaudio().download(filepath=PATH, quiet=True)
             alt_title = video.title
-            cache[url] = (file, alt_title)
+            length = video.length
+            cache[url] = (file, alt_title, length)
 
         self.file: str = file
         self.title: str = info.get("title", alt_title)
         self.start: float = info.get("start", 0.0)
         self.stop: float = info.get("stop", None)
         self.note: str = info.get("note", "")
+        self.length: float = length
 
     def get_player(self):
         # load VLC instance and media

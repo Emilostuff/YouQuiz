@@ -97,7 +97,7 @@ class Program:
         self.used[index] = True
         self.gui.update_player_info(self.loaded_song)
         self.gui.reload_song_list(self.cfg.songs, self.used)
-        self.gui.update_progress_bar(self.player.get_position())  # always shows 0.0
+        self.gui.update_progress_bar(self.loaded_song.start / self.loaded_song.length)  # always shows 0.0
 
         self.buzzers_enabled = True
         self.gui.window["-ENABLE-"].update(True)
@@ -206,7 +206,9 @@ class Program:
                     self.run_team_popup(self.cfg.teams["yellow"], f"Updating Blue Team")
 
             elif self.state == State.PLAYING:
-                self.gui.update_progress_bar(self.player.get_position())
+                pos = self.player.get_position()
+                if pos > 0 or self.loaded_song.start == 0:
+                    self.gui.update_progress_bar(pos)
                 self.update_timers()
                 self.update_teams()
 
