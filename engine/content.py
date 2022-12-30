@@ -5,9 +5,11 @@ from dataclasses import dataclass
 import os
 from enum import Enum
 from threading import Thread
+import json
 
 # defaults
 PATH = "temp"
+CACHE_FILE = "/cache.json"
 STD_BUZZ = {"url": "https://www.youtube.com/watch?v=f1kA5ozNbzg&ab_channel=Memefinity"}
 STD_NO_OF_TEAMS = 2
 STD_PENALTY_TIME = 5
@@ -28,12 +30,20 @@ class Team:
 
 
 class Audio:
-    def __init__(self, info):
-        video = pafy.new(info["url"])
-        best = video.getbestaudio()
+    def __init__(self, info, cache):
+        url = info["url"]
+        cached = cache.get(url, None)
+        
+        if cached is not None:
+            file, alt_title = cached
+        else: 
+            video = pafy.new(url)
+            file = video.getbestaudio().download(filepath=PATH, quiet=True)
+            alt_title = video.title
+            cache[url] = (file, alt_title)
 
-        self.file: str = best.download(filepath=PATH, quiet=True)
-        self.title: str = info.get("title", video.title)
+        self.file: str = file
+        self.title: str = info.get("title", alt_title)
         self.start: float = info.get("start", 0.0)
         self.stop: float = info.get("stop", None)
         self.note: str = info.get("note", "")
@@ -70,6 +80,12 @@ def parse(path) -> QuizConfig:
     if not os.path.exists(PATH):
         os.makedirs(PATH)
 
+    # load cached file list
+    cache = dict()
+    if os.path.exists(PATH + CACHE_FILE):
+        with open(PATH + CACHE_FILE, 'r') as json_file:
+            cache = json.load(json_file)
+    
     # parse YAML
     with open(path, "r") as f:
         data = yaml.load(f, Loader=yaml.Loader)
@@ -97,7 +113,7 @@ def parse(path) -> QuizConfig:
     handles = []
 
     def fetch(i, info):
-        audio = Audio(info)
+        audio = Audio(info, cache)
         print(f"Fetched: {audio.title}")
         result[i] = audio
 
@@ -113,6 +129,10 @@ def parse(path) -> QuizConfig:
     teams = dict()
     for (i, key) in enumerate(TEAMS[0:n_teams]):
         teams[key] = Team(key.upper(), result[i].get_player())
+
+    # save update cached files
+    with open(PATH + CACHE_FILE, 'w') as json_file:
+        json_file.write(json.dumps(cache))
 
     return QuizConfig(title, n_teams, penalty_time, teams, result[4:])
 
