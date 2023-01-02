@@ -1,12 +1,4 @@
-from flask import (
-    Flask,
-    request,
-    render_template,
-    redirect,
-    Response,
-    stream_with_context,
-    abort,
-)
+from flask import Flask, request, render_template, Response, stream_with_context, abort
 import queue
 from threading import Thread, Lock
 from content import QuizConfig
@@ -15,7 +7,6 @@ from content import parse
 from werkzeug.serving import make_server
 import json
 import time
-from datetime import datetime
 
 
 PORT = 600

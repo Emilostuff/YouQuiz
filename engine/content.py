@@ -3,7 +3,6 @@ import pafy
 import vlc
 from dataclasses import dataclass
 import os
-from enum import Enum
 from threading import Thread
 import json
 
