@@ -11,7 +11,7 @@ class State(Enum):
     BUZZED = auto()
 
 
-class ApplicationState:
+class Context:
     def __init__(self, config: QuizConfig):
         self.state = State.UNLOADED
         self.loaded_song: Audio = None
@@ -19,8 +19,9 @@ class ApplicationState:
         self.used_songs = dict.fromkeys(config.songs, False)
         self.points = dict.fromkeys(config.teams.values(), 0)
         self.timers = dict.fromkeys(config.teams.values(), 0.0)
+        self.buzzed = set()
         self.last_time = None
-        self.buzzers_enabled = True
+        self.buzzing_enabled = True
         self.team_in_focus = None
 
     def reset_timers(self):
@@ -31,7 +32,7 @@ class ApplicationState:
         now = time.time()
         elapsed = now - self.last_time
         self.last_time = now
-        for (team, remaining) in self.timers:
+        for team, remaining in self.timers.items():
             if remaining != 0.0:
                 self.timers[team] = max(remaining - elapsed, 0.0)
 
@@ -49,6 +50,7 @@ class ApplicationState:
         self.team_in_focus = None
 
     def set_to_playing(self):
+        self.reset_buzzed()
         self.state = State.PLAYING
         self.__start_player()
         self.last_time = time.time()
@@ -63,11 +65,26 @@ class ApplicationState:
         self.loaded_song = song
         self.player = song.get_player()
         self.used_songs[song] = True
-        self.buzzers_enabled = True
+        self.buzzing_enabled = True
         self.reset_timers()
 
     def toggle_mark_song(self, song):
         self.used_songs[song] = not self.used_songs[song]
+
+    def try_add_buzz(self, team):
+        if (
+            (self.state == State.PLAYING or self.state == State.BUZZED)
+            and team not in self.buzzed
+            and self.buzzing_enabled
+            and self.timers[team] == 0.0
+        ):
+            self.buzzed.add(team)
+            return True
+        else:
+            return False
+
+    def reset_buzzed(self):
+        self.buzzed = set()
 
     def kill(self):
         if self.player is not None:

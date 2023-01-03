@@ -1,1 +1,7 @@
 pafy @ git+https://github.com/notLonelySoul/pafy1
+clipboard==0.0.4
+Flask==2.2.2
+Werkzeug==2.2.2
+python-vlc==3.0.18121
+PySimpleGUI==4.60.4
+youtube-dl==2021.12.17

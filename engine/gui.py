@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 import textwrap
-from state import ApplicationState, State
+from state import Context, State
 import clipboard
 
 COL_WIDTH = 75
@@ -12,10 +12,10 @@ sg.theme("DarkRed")
 class Window:
     def __init__(self):
         raise Exception("Cannot instantiate base class")
-    
+
     def get_event(self):
         event, values = self.window.read(timeout=10)
-        if event == sg.WIN_CLOSED:
+        if event == sg.WINDOW_CLOSED:
             event = "Exit"
         return event
 
@@ -42,15 +42,13 @@ class Gui(Window):
         sg.cprint_set_output_destination(self.window, "-LOG-")
         self.window["-SONGS-"].update(set_to_index=0)
 
-    def refresh(self, config, ctx: ApplicationState, focus):
+    def refresh(self, config, ctx: Context, focus):
         # keep spacebar in focus
         if focus:
             self.window["-PLAYPAUSE-"].set_focus()
-        
+
         # Player section
         if ctx.state != State.UNLOADED:
-            self.window["-SONG_DISPLAY-"].update(ctx.loaded_song.title)
-            self.window["-SONG_INFO-"].update(ctx.loaded_song.note)
             # progress bar
             position = ctx.player.get_position()
             if position > 0 or ctx.loaded_song.start == 0:
@@ -59,14 +57,12 @@ class Gui(Window):
                 ctx.loaded_song.start / ctx.loaded_song.length
 
         if ctx.state == State.PLAYING:
-            self.window["-PLAYPAUSE-"].update("PLAY")
-        else:
             self.window["-PLAYPAUSE-"].update("PAUSE")
-
-
+        else:
+            self.window["-PLAYPAUSE-"].update("PLAY")
 
         # enable buzzers
-        self.window["-ENABLE-"].update(ctx.buzzers_enabled)
+        self.window["-ENABLE-"].update(ctx.buzzing_enabled)
 
         # teams section
         for team in config.teams.values():
@@ -79,12 +75,15 @@ class Gui(Window):
             else:
                 self.window[f"-{team.name}_PENALTIES-"].update(f"-")
 
-        # song list
+    def update_song_list(self, cfg, ctx):
+        self.window["-SONG_DISPLAY-"].update(ctx.loaded_song.title)
+        self.window["-SONG_INFO-"].update(ctx.loaded_song.note)
+
         index = self.song_index()
         names = []
-        for s in config.songs:
-            
+        for s in cfg.songs:
             names.append("   ✓   " + s.title if ctx.used_songs[s] else s.title)
+
         self.window["-SONGS-"].update(
             values=names,
             set_to_index=index,
@@ -108,16 +107,15 @@ class Gui(Window):
     def copy_selection_from_info(self):
         clipboard.copy(self.window["-SONG_INFO-"].Widget.selection_get())
 
-    
-        
-
-    
-
 
 class Popup(Window):
     def __init__(self, msg, team, cfg):
         self.window = sg.Window(
-            msg, get_popup_layout(msg, team, cfg), finalize=True, font=FONT, keep_on_top=True
+            msg,
+            get_popup_layout(msg, team, cfg),
+            finalize=True,
+            font=FONT,
+            keep_on_top=True,
         )
         self.team = team
 
@@ -294,7 +292,7 @@ def get_popup_layout(msg, team, cfg):
             sg.Push(),
             sg.Button(
                 "DONE",
-                key="-DONE-",
+                key="Exit",
                 enable_events=True,
             ),
             sg.Push(),

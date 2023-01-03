@@ -3,7 +3,6 @@ import queue
 from threading import Thread, Lock
 from content import QuizConfig
 import socket
-from content import parse
 from werkzeug.serving import make_server
 import json
 import time
@@ -25,20 +24,21 @@ class ServerThread(Thread):
 
 
 class Server:
-    def __init__(self, cfg: QuizConfig):
+    def __init__(self, cfg: QuizConfig, ctx):
         self.cfg = cfg
+        self.ctx = ctx
         self.queue = queue.Queue()
-        self.buzzed = {team: False for team in self.cfg.teams.values()}
-        self.accepting = {team: False for team in self.cfg.teams.values()}
         self.lock = Lock()
-        self.program = None
         self.__run()
 
-    def setup_read_access(self, program):
-        self.program = program
-
     def get_url(self):
-        hostname = socket.gethostname()
+        hostname = None
+        while hostname is None:
+            try:
+                # connect
+                hostname = socket.gethostname()
+            except:
+                print("Could not obtain host ip")
         return "http://" + socket.gethostbyname_ex(hostname)[-1][-1] + f":{PORT}"
 
     def has_next(self):
@@ -46,29 +46,6 @@ class Server:
 
     def get(self):
         return self.queue.get()
-
-    def close_all(self):
-        self.lock.acquire()
-        self.accepting = {team: False for team in self.cfg.teams.values()}
-        self.lock.release()
-
-    def open(self, team):
-        self.lock.acquire()
-        self.accepting[team] = True
-        self.lock.release()
-
-    def reset_buzzers(self):
-        self.lock.acquire()
-        self.buzzed = {team: False for team in self.cfg.teams.values()}
-        self.lock.release()
-
-    def __buzz(self, team):
-        self.lock.acquire()
-        if self.accepting[team] and not self.buzzed[team]:
-            self.queue.put(team)
-            self.buzzed[team] = True
-            team.play_buzzer()
-        self.lock.release()
 
     def __run(self):
         app = Flask(__name__)
@@ -81,10 +58,13 @@ class Server:
         def buzzer(color):
             if color not in self.cfg.teams:
                 abort(404)
-
             team = self.cfg.teams[color]
             if request.method == "POST":
-                self.__buzz(team)
+                self.lock.acquire()
+                if self.ctx.try_add_buzz(team):
+                    self.queue.put(team)
+                    team.play_buzzer()
+                self.lock.release()
             return render_template("buzzer.html", color=team.name.lower())
 
         @app.route("/live")
@@ -98,22 +78,22 @@ class Server:
 
         def stream_data():
             try:
-                while self.program is None:
-                    pass
+                print("Live data connection established")
                 while True:
                     data = dict()
-                    focus_team = self.program.team_in_focus
+                    focus_team = self.ctx.team_in_focus
                     for team in self.cfg.teams.values():
                         x = dict()
-                        x["points"] = self.program.points[team]
-                        x["timer"] = round(self.program.timers[team], 1)
-                        x["buzzed"] = self.buzzed[team]
+                        x["points"] = self.ctx.points[team]
+                        x["timer"] = round(self.ctx.timers[team], 1)
+                        x["buzzed"] = team in self.ctx.buzzed
                         x["focus"] = focus_team is not None and focus_team is team
                         data[team.name.lower()] = x
 
                     yield f"data:{json.dumps(data)}\n\n"
                     time.sleep(STREAM_INTERVAL)
             except GeneratorExit:
+                print("Live data connection closed")
                 pass
 
         @app.route("/live-data")
@@ -125,16 +105,9 @@ class Server:
             response.headers["X-Accel-Buffering"] = "no"
             return response
 
+        # start server
         self.thread = ServerThread(app)
         self.thread.start()
 
-    def shutdown(self):
+    def close(self):
         self.thread.server.shutdown()
-
-
-if __name__ == "__main__":
-    cfg = parse("examples/test.yml")
-    s = Server(cfg)
-    print(s.get_url())
-    input()
-    s.shutdown()
