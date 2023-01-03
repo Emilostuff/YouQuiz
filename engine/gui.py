@@ -1,16 +1,30 @@
 import PySimpleGUI as sg
 import textwrap
+from state import ApplicationState, State
+import clipboard
 
 COL_WIDTH = 75
 TITLE_FONT = ("Arial bold", 26)
 FONT = ("Arial", 15)
+sg.theme("DarkRed")
 
 
-class Gui:
+class Window:
+    def __init__(self):
+        raise Exception("Cannot instantiate base class")
+    
+    def get_event(self):
+        event, values = self.window.read(timeout=10)
+        if event == sg.WIN_CLOSED:
+            event = "Exit"
+        return event
+
+    def close(self):
+        self.window.close()
+
+
+class Gui(Window):
     def __init__(self, cfg):
-        # settings
-        sg.theme("DarkRed")
-
         # define layout
         col1 = [*get_player_layout(), [sg.VPush()], *get_library_layout(cfg)]
         col2 = [*get_teams_layout(cfg), *get_log_layout()]
@@ -25,34 +39,60 @@ class Gui:
             font=FONT,
             enable_close_attempted_event=False,
         )
-        self.set_song_index(0)
         sg.cprint_set_output_destination(self.window, "-LOG-")
+        self.window["-SONGS-"].update(set_to_index=0)
 
-    def get_event(self):
-        event, values = self.window.read(timeout=10)
-        if event == sg.WINDOW_CLOSED:
-            event = "Exit"
-        return event
+    def refresh(self, config, ctx: ApplicationState, focus):
+        # keep spacebar in focus
+        if focus:
+            self.window["-PLAYPAUSE-"].set_focus()
+        
+        # Player section
+        if ctx.state != State.UNLOADED:
+            self.window["-SONG_DISPLAY-"].update(ctx.loaded_song.title)
+            self.window["-SONG_INFO-"].update(ctx.loaded_song.note)
+            # progress bar
+            position = ctx.player.get_position()
+            if position > 0 or ctx.loaded_song.start == 0:
+                self.window["-PROGRESS-"].update(max(position, 0))
+            else:
+                ctx.loaded_song.start / ctx.loaded_song.length
+
+        if ctx.state == State.PLAYING:
+            self.window["-PLAYPAUSE-"].update("PLAY")
+        else:
+            self.window["-PLAYPAUSE-"].update("PAUSE")
+
+
+
+        # enable buzzers
+        self.window["-ENABLE-"].update(ctx.buzzers_enabled)
+
+        # teams section
+        for team in config.teams.values():
+            # timers
+            self.window[f"-{team.name}_POINTS-"].update(f"{ctx.points[team]}")
+            if ctx.timers[team] != 0.0:
+                self.window[f"-{team.name}_PENALTIES-"].update(
+                    f"{ctx.timers[team]:.1f} s"
+                )
+            else:
+                self.window[f"-{team.name}_PENALTIES-"].update(f"-")
+
+        # song list
+        index = self.song_index()
+        names = []
+        for s in config.songs:
+            
+            names.append("   ✓   " + s.title if ctx.used_songs[s] else s.title)
+        self.window["-SONGS-"].update(
+            values=names,
+            set_to_index=index,
+            scroll_to_index=index,
+        )
 
     def song_index(self):
         return self.window["-SONGS-"].get_indexes()[0]
-
-    def set_song_index(self, index):
-        self.window["-SONGS-"].update(set_to_index=[index])
-
-    def reload_song_list(self, songs, used):
-        index = self.song_index()
-        names = []
-        for (i, s) in enumerate(songs):
-            names.append("   ✓   " + s.title if used[i] else s.title)
-
-        self.window["-SONGS-"].update(
-            values=names, set_to_index=index
-        )
-
-    def update_player_info(self, song):
-        self.window["-SONG_DISPLAY-"].update(song.title)
-        self.window["-SONG_INFO-"].update(song.note)
 
     def log(self, msg, new=False, indent=False):
         if new:
@@ -62,26 +102,27 @@ class Gui:
             msg = "   •   " + msg
         sg.cprint(msg)
 
-    def update_progress_bar(self, position):
-        self.window["-PROGRESS-"].update(position)
+    def copy_selection_from_log(self):
+        clipboard.copy(self.window["-LOG-"].Widget.selection_get())
 
-    # popup related
-    def open_popup(self, msg, cfg):
-        self.popup = sg.Window(
-            msg, get_popup_layout(msg, cfg), finalize=True, font=FONT, keep_on_top=True
+    def copy_selection_from_info(self):
+        clipboard.copy(self.window["-SONG_INFO-"].Widget.selection_get())
+
+    
+        
+
+    
+
+
+class Popup(Window):
+    def __init__(self, msg, team, cfg):
+        self.window = sg.Window(
+            msg, get_popup_layout(msg, team, cfg), finalize=True, font=FONT, keep_on_top=True
         )
+        self.team = team
 
-    def get_popup_event(self):
-        if self.popup is None:
-            return None
-        event, values = self.popup.read(timeout=10)
-        if event == sg.WIN_CLOSED:
-            event = "Exit"
-        return event
-
-    def close_popup(self):
-        self.popup.close()
-        self.popup = None
+    def close(self):
+        self.window.close()
 
 
 # Main window layout
@@ -103,7 +144,7 @@ def get_player_layout():
                 key="-SONG_INFO-",
                 write_only=True,
                 no_scrollbar=True,
-                right_click_menu=['', ['Copy::info']]
+                right_click_menu=["", ["Copy::info"]],
             )
         ],
         [sg.T()],
@@ -125,7 +166,6 @@ def get_library_layout(cfg):
                 size=(COL_WIDTH, 25),
                 key="-SONGS-",
                 no_scrollbar=True,
-                
             )
         ],
     ]
@@ -184,14 +224,14 @@ def get_log_layout():
                 write_only=True,
                 no_scrollbar=True,
                 expand_y=True,
-                right_click_menu=['', ['Copy::log']]
+                right_click_menu=["", ["Copy::log"]],
             )
         ],
     ]
 
 
 # Popup layout
-def get_popup_layout(msg, cfg):
+def get_popup_layout(msg, team, cfg):
     return [
         [
             sg.Push(),

@@ -32,10 +32,10 @@ class Audio:
     def __init__(self, info, cache):
         url = info["url"]
         cached = cache.get(url, None)
-        
+
         if cached is not None:
             (file, alt_title, length) = cached
-        else: 
+        else:
             video = pafy.new(url)
             file = video.getbestaudio().download(filepath=PATH, quiet=True)
             alt_title = video.title
@@ -48,6 +48,9 @@ class Audio:
         self.stop: float = info.get("stop", None)
         self.note: str = info.get("note", "")
         self.length: float = length
+
+    def __hash__(self):
+        return hash(self.file)
 
     def get_player(self):
         # load VLC instance and media
@@ -84,9 +87,9 @@ def parse(path) -> QuizConfig:
     # load cached file list
     cache = dict()
     if os.path.exists(PATH + CACHE_FILE):
-        with open(PATH + CACHE_FILE, 'r') as json_file:
+        with open(PATH + CACHE_FILE, "r") as json_file:
             cache = json.load(json_file)
-    
+
     # parse YAML
     with open(path, "r") as f:
         data = yaml.load(f, Loader=yaml.Loader)
@@ -132,7 +135,7 @@ def parse(path) -> QuizConfig:
         teams[key] = Team(key.upper(), result[i].get_player())
 
     # save update cached files
-    with open(PATH + CACHE_FILE, 'w') as json_file:
+    with open(PATH + CACHE_FILE, "w") as json_file:
         json_file.write(json.dumps(cache))
 
     return QuizConfig(title, n_teams, penalty_time, teams, result[4:])
