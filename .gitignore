@@ -1,7 +1,6 @@
 .vscode/
 .DS_Store
 temp/
-examples/mashup.yml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

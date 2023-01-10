@@ -1,0 +1,35 @@
+# General settings ------------------------------------------------------
+settings:
+  title: Template Music Quiz
+  teams: 4
+  penalty_time: 10
+
+# Custom buzzer sounds --------------------------------------------------
+buzzers:
+  red:
+    url: https://youtu.be/L6aT_oEhIKo
+    start: 0.1
+    stop: 4
+  blue:
+    url: https://youtu.be/em7MmfpzrX8
+    start: 9.2
+    stop: 10.5
+  green:
+    url: https://youtu.be/XRAkFTjk2qM
+    start: 0.2
+  yellow:
+    url: https://youtu.be/uZbluITLgyg
+    start: 0.3
+
+# Songs to guess --------------------------------------------------------
+songs:
+  - url: https://youtu.be/dQw4w9WgXcQ
+    title: Definitely Not Rick Astley
+    note: Guess the title 
+    start: 18.2
+    stop: 125
+  - url: https://youtu.be/9qoXa5_w3Gw
+    note: Guess the artist
+  - url: https://youtu.be/GjNY5HGcopA
+    note: Guess the title
+

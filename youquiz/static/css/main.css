@@ -28,6 +28,10 @@ span {
     margin-bottom: 60px !important;
 }
 
+.mb-100 {
+    margin-bottom: 100px !important;
+}
+
 .mt-60 {
     margin-top: 60px !important;
 }
@@ -100,6 +104,15 @@ h5 {
     font-weight: bold;
     color: rgb(179, 179, 179);
     font-size: 20px;
+    text-align: center;
+    font-family: sans-serif;
+    text-transform: uppercase;
+}
+
+h6 {
+    font-weight: bold;
+    color: rgb(131, 131, 131);
+    font-size: 40px;
     text-align: center;
     font-family: sans-serif;
     text-transform: uppercase;

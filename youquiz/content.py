@@ -11,7 +11,7 @@ PATH = "temp"
 CACHE_FILE = "/cache.json"
 STD_BUZZ = {"url": "https://www.youtube.com/watch?v=f1kA5ozNbzg&ab_channel=Memefinity"}
 STD_NO_OF_TEAMS = 2
-STD_PENALTY_TIME = 5
+STD_PENALTY_TIME = 10
 TEAMS = ["red", "blue", "green", "yellow"]
 
 
@@ -92,7 +92,7 @@ def parse(path) -> QuizConfig:
 
     # parse YAML
     with open(path, "r") as f:
-        data = yaml.load(f, Loader=yaml.Loader)
+        data = dict(yaml.load(f, Loader=yaml.Loader))
 
     # parse settings (or set to default) and check validity
     settings = data.get("settings", dict())
