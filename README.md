@@ -5,6 +5,8 @@
 
 Have fun!
 
+![](images/buzzer.jpg)
+
 # Installation
 ### 1. Tkinter
 Python with `tkinter` is required. Installation depends on your platform and how you manage your Python installations. Here is an example for MacOS using Homebrew:
